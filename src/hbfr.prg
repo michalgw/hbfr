@@ -59,6 +59,7 @@ CREATE CLASS TFreeReport
    METHOD AddValue(cValueName, xValue)
    METHOD AddRow(cTableName, aValues, aNames)
    METHOD AddDataset(cDatasetName)
+   METHOD AddHbDataset(cDatasetName, cExprCheckEOF, cExprFirst, cExprNext)
    METHOD RowCount(cValueName)
    METHOD ClearData()
 
@@ -119,7 +120,7 @@ FUNCTION hbfr_LoadLibrary(cLibName, lOemConvert)
       RETURN .F.
    ELSE
       nRes := hb_DynCall({'hbfr_Init', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
-         HB_DYN_CTYPE_BOOL}, lOemConvert)
+         HB_DYN_CTYPE_BOOL, HB_DYN_CTYPE_VOID_PTR}, lOemConvert, GetHbPasFuncs())
       IF nRes != 0
          nHbFrLibHandle := NIL
          RETURN .F.
@@ -262,6 +263,12 @@ METHOD AddDataset(cDatasetName) CLASS TFreeReport
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cDatasetName))
    RETURN
 
+METHOD AddHbDataset(cDatasetName, cExprCheckEOF, cExprFirst, cExprNext) CLASS TFreeReport
+   ::CheckRes(hb_DynCall({'hbfr_AddHbDataset', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
+      HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_CHAR_PTR},;
+	  ::nObjHandle, cDatasetName, cExprCheckEOF, cExprFirst, cExprNext))
+   RETURN
+
 METHOD RowCount(cTableName) CLASS TFreeReport
    LOCAL nRes := 0
    nRes := hb_DynCall({'hbfr_GetRowCount', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
@@ -398,4 +405,63 @@ METHOD SetModalPreview(lVal) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetModalPreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, lVal))
    RETURN
+   
+FUNCTION hbfr_Eval(cExpr, p1, p2, p3, p4, p5)
+   RETURN Eval(&(cExpr), p1, p2, p3, p4, p5)
 
+FUNCTION hbfr_Exec(cExpr)
+   RETURN &cExpr
+
+#pragma BEGINDUMP
+
+#include "hbapi.h"
+#include "hbvm.h"
+#include "hbdate.h"
+
+struct ExpPasFunc {
+   void* Thb_dynsymFindName;
+   void* Thb_dynsymSymbol;
+   void* Thb_vmPushSymbol;
+   void* Thb_vmPushNil;
+   void* Thb_vmPushString;
+   void* Thb_vmPushNumber;
+   void* Thb_vmPushLogical;
+   void* Thb_vmPushDate;
+   void* Thb_vmFunction;
+   void* Thb_parinfo;
+   void* Thb_parc;
+   void* Thb_parclen;
+   void* Thb_parl;
+   void* Thb_pardl;
+   void* Thb_parnd;
+   void* Thb_parni;
+   void* Thb_dateDecode;
+   void* Thb_dateEncode;
+};
+
+static struct ExpPasFunc sExtPasFunc;
+
+HB_FUNC( GETHBPASFUNCS )
+{
+   sExtPasFunc.Thb_dynsymFindName = &hb_dynsymFindName;
+   sExtPasFunc.Thb_dynsymSymbol = &hb_dynsymSymbol;
+   sExtPasFunc.Thb_vmPushSymbol = &hb_vmPushSymbol;
+   sExtPasFunc.Thb_vmPushNil = &hb_vmPushNil;
+   sExtPasFunc.Thb_vmPushString = &hb_vmPushString;
+   sExtPasFunc.Thb_vmPushNumber = &hb_vmPushNumber;
+   sExtPasFunc.Thb_vmPushLogical = &hb_vmPushLogical;
+   sExtPasFunc.Thb_vmPushDate = &hb_vmPushDate;
+   sExtPasFunc.Thb_vmFunction = &hb_vmFunction;
+   sExtPasFunc.Thb_parinfo = &hb_parinfo;
+   sExtPasFunc.Thb_parc = &hb_parc;
+   sExtPasFunc.Thb_parclen = &hb_parclen;
+   sExtPasFunc.Thb_parl = &hb_parl;
+   sExtPasFunc.Thb_pardl = &hb_pardl;
+   sExtPasFunc.Thb_parnd = &hb_parnd;
+   sExtPasFunc.Thb_parni = &hb_parni;
+   sExtPasFunc.Thb_dateDecode = &hb_dateDecode;
+   sExtPasFunc.Thb_dateEncode = &hb_dateEncode;
+   hb_retptr( &sExtPasFunc );
+}
+
+#pragma ENDDUMP

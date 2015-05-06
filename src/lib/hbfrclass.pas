@@ -42,6 +42,16 @@ const
   SAFE_SEPARATOR = '_';
 
 type
+  THbDataset = class(TfrDataset)
+  public
+    ExprCheckEOF: String;
+    ExprFirst: String;
+    ExprNext: String;
+    function Eof: Boolean; override;
+    procedure First; override;
+    procedure Next; override;
+  end;
+
   THBFRObj = class(TDataModule)
     Designer: TfrDesigner;
     frOLEObject1: TfrOLEObject;
@@ -76,6 +86,7 @@ type
     constructor CreateC(AOwner: TComponent; AComposite: Boolean = False);
     function AddValue(AValueName: String; AValue: Variant): Integer;
     function AddDataset(ADatasetName: String): Integer;
+    function AddHbDataset(ADatasetName: String; AExprCheckEof, AExprFirst, AExprNext: String): Integer;
     function GetRowCount(ATable: String): Integer;
     function ClearData: Integer;
     function DeleteData(AName: String): Integer;
@@ -107,7 +118,7 @@ implementation
 {$R *.dfm}
 
 uses
-  Printers;
+  Printers, hbfrintf, Variants;
 
 { TTHBFRObj }
 
@@ -121,6 +132,27 @@ begin
   DS.OnCheckEOF := DSCheckEof;
   DS.OnFirst := DSFirst;
   DS.OnNext := DSNext;
+  FDatasets.Add(DS);
+  Result := 0;
+end;
+
+function THBFRObj.AddHbDataset(ADatasetName, AExprCheckEof, AExprFirst,
+  AExprNext: String): Integer;
+var
+  DS: THbDataset;
+begin
+  if (ADatasetName = '') or (AExprCheckEof = '') or (AExprFirst = '') or
+    (AExprNext = '') then
+  begin
+    Result := -1;
+    Exit;
+  end;
+  DS := THbDataset.Create(Self);
+  DS.Name := StringReplace(ADatasetName, NAME_SEPARATOR, SAFE_SEPARATOR, [rfReplaceAll]);
+  DS.Tag := 0;
+  DS.ExprCheckEOF := AExprCheckEof;
+  DS.ExprFirst := AExprFirst;
+  DS.ExprNext := AExprNext;
   FDatasets.Add(DS);
   Result := 0;
 end;
@@ -159,7 +191,7 @@ function THBFRObj.ClearData: Integer;
 begin
   while FDatasets.Count > 0 do
   begin
-    TfrUserDataset(FDatasets[0]).Free;
+    TfrDataset(FDatasets[0]).Free;
     FDatasets.Delete(0);
   end;
   FData.Clear;
@@ -208,7 +240,7 @@ var
 begin
   Result := nil;
   for I := 0 to FDatasets.Count - 1 do
-    if TfrUserDataset(FDatasets[I]).Name = ADataSet then
+    if (TObject(FDatasets[I]) is TfrUserDataset) and (TfrUserDataset(FDatasets[I]).Name = ADataSet) then
     begin
       Result := TfrUserDataset(FDatasets[I]);
       Exit;
@@ -310,49 +342,54 @@ procedure THBFRObj.FRGetValue(const ParName: String; var ParValue: Variant);
 var
   DS1, DS2, DS3: TfrUserDataset;
   FNames: TStringList;
+  PN: String;
 begin
-  if ValueExist(ParName) then
-    ParValue := GetByName(ParName).Value
+  PN := Trim(ParName);
+  if (PN[1] = '{') and  (PN[Length(PN)] = '}') then
+    ParValue := HbEval(Copy(PN, 2, Length(PN) - 2), [], True)
   else
-  begin
-    if DecodeName(ParName, FNames) then
-      case FNames.Count of
-        // Master dataset
-        2: begin
-          DS1 := DatasetByName(FNames[0]);
-          if (DS1 <> nil) and ValueExist(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
-            NAME_SEPARATOR + FNames[1]) then
-            ParValue := GetByName(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
-              NAME_SEPARATOR + FNames[1]).Value;
-        end;
-        // Detail dataset
-        3: begin
-          DS1 := DatasetByName(FNames[0]);
-          DS2 := DatasetByName(FNames[0] + SAFE_SEPARATOR + FNames[1]);
-          if (DS1 <> nil) and (DS2 <> nil) and ValueExist(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
-            NAME_SEPARATOR + FNames[1] + NAME_SEPARATOR + IntToStr(DS2.Tag) +
-            NAME_SEPARATOR + FNames[2]) then
-            ParValue := GetByName(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
+    if ValueExist(ParName) then
+      ParValue := GetByName(ParName).Value
+    else
+    begin
+      if DecodeName(ParName, FNames) then
+        case FNames.Count of
+          // Master dataset
+          2: begin
+            DS1 := DatasetByName(FNames[0]);
+            if (DS1 <> nil) and ValueExist(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
+              NAME_SEPARATOR + FNames[1]) then
+              ParValue := GetByName(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
+                NAME_SEPARATOR + FNames[1]).Value;
+          end;
+          // Detail dataset
+          3: begin
+            DS1 := DatasetByName(FNames[0]);
+            DS2 := DatasetByName(FNames[0] + SAFE_SEPARATOR + FNames[1]);
+            if (DS1 <> nil) and (DS2 <> nil) and ValueExist(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
               NAME_SEPARATOR + FNames[1] + NAME_SEPARATOR + IntToStr(DS2.Tag) +
-              NAME_SEPARATOR + FNames[2]).Value;
-        end;
-        // Subdetail dataset
-        4: begin
-          DS1 := DatasetByName(FNames[0]);
-          DS2 := DatasetByName(FNames[0] + SAFE_SEPARATOR + FNames[1]);
-          DS3 := DatasetByName(FNames[0] + SAFE_SEPARATOR + FNames[1] + SAFE_SEPARATOR + FNames[2]);
-          if (DS1 <> nil) and (DS2 <> nil) and (DS3 <> nil) and ValueExist(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
-            NAME_SEPARATOR + FNames[1] + NAME_SEPARATOR + IntToStr(DS2.Tag) +
-            NAME_SEPARATOR + FNames[2] + NAME_SEPARATOR + IntToStr(DS3.Tag) +
-            NAME_SEPARATOR + FNames[3]) then
-            ParValue := GetByName(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
+              NAME_SEPARATOR + FNames[2]) then
+              ParValue := GetByName(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
+                NAME_SEPARATOR + FNames[1] + NAME_SEPARATOR + IntToStr(DS2.Tag) +
+                NAME_SEPARATOR + FNames[2]).Value;
+          end;
+          // Subdetail dataset
+          4: begin
+            DS1 := DatasetByName(FNames[0]);
+            DS2 := DatasetByName(FNames[0] + SAFE_SEPARATOR + FNames[1]);
+            DS3 := DatasetByName(FNames[0] + SAFE_SEPARATOR + FNames[1] + SAFE_SEPARATOR + FNames[2]);
+            if (DS1 <> nil) and (DS2 <> nil) and (DS3 <> nil) and ValueExist(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
               NAME_SEPARATOR + FNames[1] + NAME_SEPARATOR + IntToStr(DS2.Tag) +
               NAME_SEPARATOR + FNames[2] + NAME_SEPARATOR + IntToStr(DS3.Tag) +
-              NAME_SEPARATOR + FNames[3]).Value;
+              NAME_SEPARATOR + FNames[3]) then
+              ParValue := GetByName(FNames[0] + NAME_SEPARATOR + IntToStr(DS1.Tag) +
+                NAME_SEPARATOR + FNames[1] + NAME_SEPARATOR + IntToStr(DS2.Tag) +
+                NAME_SEPARATOR + FNames[2] + NAME_SEPARATOR + IntToStr(DS3.Tag) +
+                NAME_SEPARATOR + FNames[3]).Value;
+          end;
         end;
-      end;
-    FNames.Free;
-  end;
+      FNames.Free;
+    end;
 end;
 
 function RemoveQuotes(AStr: String): String;
@@ -366,6 +403,9 @@ end;
 procedure THBFRObj.FRUserFunction(const Name: String; p1, p2, p3: Variant;
   var Val: String);
 begin
+  if UpperCase(Name) = 'EVAL' then
+    Val:=VarToStrDef(HbEval(RemoveQuotes(Trim(p1)), [p2, p3]), '')
+  else
   if UpperCase(Name) = 'ROWCOUNT' then
     Val := IntToStr(GetRowCount(RemoveQuotes(Name)))
   else
@@ -377,12 +417,10 @@ begin
 end;
 
 function THBFRObj.GetByName(AName: String): TSmpAssocArray;
-
 var
   A: TSmpAssocArray;
   I: Integer;
   FNames: TStringList;
-
 begin
   Result := Nil;
   if DecodeName(AName, FNames) then
@@ -495,6 +533,36 @@ end;
 function THBFRObj.ValueExist(AName: String): Boolean;
 begin
   Result := Assigned(GetByName(AName));
+end;
+
+{ THbDataset }
+
+function THbDataset.Eof: Boolean;
+var
+  V: Variant;
+begin
+  Result := True;
+  if ExprCheckEOF <> '' then
+  begin
+    V := HbEval(ExprCheckEOF, [], True);
+    if VarIsType(V, varBoolean) then
+      Result := V
+    else
+      if VarIsNumeric(V) then
+        Result := V <> 0;
+  end;
+end;
+
+procedure THbDataset.First;
+begin
+  if ExprFirst <> '' then
+    HbEval(ExprFirst, [], True);
+end;
+
+procedure THbDataset.Next;
+begin
+  if ExprNext <> '' then
+    HbEval(ExprNext, [], True);
 end;
 
 end.

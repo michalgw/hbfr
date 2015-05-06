@@ -50,6 +50,7 @@ exports
   hbfr_AddValueL,
   hbfr_AddValueD,
   hbfr_AddDataset,
+  hbfr_AddHbDataset,
   hbfr_GetRowCount,
   hbfr_ClearData,
   hbfr_AddReport,

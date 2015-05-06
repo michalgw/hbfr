@@ -35,7 +35,49 @@ interface
 uses
   Classes, hbfrclass;
 
-function hbfr_Init(AOemConvert: LongBool): Integer; stdcall;
+type
+  Thb_dynsymFindName = function(AName: PChar): Pointer; cdecl;
+  Thb_dynsymSymbol = function(ASym: Pointer): Pointer; cdecl;
+  Thb_vmPushSymbol = procedure(ASym: Pointer); cdecl;
+  Thb_vmPushNil = procedure; cdecl;
+  Thb_vmPushString = procedure(AStr: PChar; ALen: LongInt); cdecl;
+  Thb_vmPushNumber = procedure(AVal: Double; ADec: LongInt); cdecl;
+  Thb_vmPushLogical = procedure(AVal: LongBool); cdecl;
+  Thb_vmPushDate = procedure(AVal: LongInt); cdecl;
+  Thb_vmFunction = procedure(AVal: Word); cdecl;
+  Thb_parinfo = function(AVal: LongInt): LongWord; cdecl;
+  Thb_parc = function(AVal: LongInt): PChar; cdecl;
+  Thb_parclen = function(AVal: LongInt): LongInt; cdecl;
+  Thb_parl = function(AVal: LongInt): LongBool; cdecl;
+  Thb_pardl = function(AVal: LongInt): LongInt; cdecl;
+  Thb_parnd = function(AVal: LongInt): Double; cdecl;
+  Thb_parni = function(AVal: LongInt): LongInt; cdecl;
+  Thb_dateDecode = procedure(AVal: LongInt; var Y, M, D: LongInt); cdecl;
+  Thb_dateEncode = function(Y, M, D: LongInt): LongInt; cdecl;
+
+  PHbFunctions = ^THbFunctions;
+  THbFunctions = packed record
+    hb_dynsymFindName: Thb_dynsymFindName;
+    hb_dynsymSymbol: Thb_dynsymSymbol;
+    hb_vmPushSymbol: Thb_vmPushSymbol;
+    hb_vmPushNil: Thb_vmPushNil;
+    hb_vmPushString: Thb_vmPushString;
+    hb_vmPushNumber: Thb_vmPushNumber;
+    hb_vmPushLogical: Thb_vmPushLogical;
+    hb_vmPushDate: Thb_vmPushDate;
+    hb_vmFunction: Thb_vmFunction;
+    hb_parinfo: Thb_parinfo;
+    hb_parc: Thb_parc;
+    hb_parclen: Thb_parclen;
+    hb_parl: Thb_parl;
+    hb_pardl: Thb_pardl;
+    hb_parnd: Thb_parnd;
+    hb_parni: Thb_parni;
+    hb_dateDecode: Thb_dateDecode;
+    hb_dateEncode: Thb_dateEncode;
+  end;
+
+function hbfr_Init(AOemConvert: LongBool; AFunctions: PHbFunctions): Integer; stdcall;
 function hbfr_ProcessMessages: Integer; StdCall;
 
 function hbfr_New(AComposite: LongBool): LongWord; stdcall;
@@ -48,6 +90,7 @@ function hbfr_AddValueL(AHandle: LongWord; AName: PChar; AValue: LongBool): Inte
 function hbfr_AddValueD(AHandle: LongWord; AName: PChar; AYear, AMonth, ADay: Integer): Integer; stdcall;
 
 function hbfr_AddDataset(AHandle: LongWord; AName: PChar): Integer; stdcall;
+function hbfr_AddHbDataset(AHandle: LongWord; AName, AExprCheckEof, AExprFirst, AExprNext: PChar): Integer; stdcall;
 
 function hbfr_GetRowCount(AHandle: LongWord; AName: PChar): Integer; stdcall;
 
@@ -89,14 +132,17 @@ function hbfr_SetPrinter(AHandle: LongWord; APrinterName: PChar): Integer; stdca
 
 function hbfr_GetErrorMsg(AHandle: LongWord; AMessage: PChar): Integer; stdcall;
 
+function HbEval(AExpr: String; AParams: array of const; DoExec: Boolean = False): Variant;
+
 implementation
 
 uses
-  SysUtils, Windows, Forms, FR_View, FR_Class, ExtCtrls;
+  SysUtils, Windows, Forms, FR_View, FR_Class, ExtCtrls, Variants, DateUtils;
 
 var
   ReportList: TList;
   DoOemConvert: Boolean;
+  HbFunc: THbFunctions;
 
 function OemToStr(ASrc: PChar): String;
 var
@@ -118,11 +164,12 @@ begin
   Result := ReportList.IndexOf(Pointer(AHandle)) >= 0;
 end;
 
-function hbfr_Init(AOemConvert: LongBool): Integer; stdcall;
+function hbfr_Init(AOemConvert: LongBool; AFunctions: PHbFunctions): Integer; stdcall;
 begin
   try
     Application.Initialize;
     DoOemConvert := AOemConvert;
+    HbFunc := AFunctions^; 
     Result := 0;
   except
     Result := -2;
@@ -280,6 +327,27 @@ begin
         Result := THBFRObj(AHandle).AddDataset(OemToStr(AName))
       else
         Result := THBFRObj(AHandle).AddDataset(String(AName))
+    else
+      Result := -1;
+  except
+    on E: Exception do
+    begin
+      THBFRObj(AHandle).LastErrorMsg := E.Message;
+      Result := -2;
+    end;
+  end;
+end;
+
+function hbfr_AddHbDataset(AHandle: LongWord; AName, AExprCheckEof, AExprFirst, AExprNext: PChar): Integer; stdcall;
+begin
+  try
+    if CheckHandle(AHandle) then
+      if DoOemConvert then
+        Result := THBFRObj(AHandle).AddHbDataset(OemToStr(AName), OemToStr(AExprCheckEof),
+          OemToStr(AExprFirst), OemToStr(AExprNext))
+      else
+        Result := THBFRObj(AHandle).AddHbDataset(String(AName), String(AExprCheckEof),
+          String(AExprFirst), String(AExprNext))
     else
       Result := -1;
   except
@@ -887,6 +955,112 @@ begin
       THBFRObj(AHandle).LastErrorMsg := E.Message;
       Result := -2;
     end;
+  end;
+end;
+
+function HbEval(AExpr: String; AParams: array of const; DoExec: Boolean): Variant;
+var
+  I: Integer;
+  S: String;
+  V: TVarRec;
+  Pc: PChar;
+  Y,M,D: Integer;
+begin
+  Result := Null;
+  if AExpr = '' then
+    Exit;
+  if DoExec then
+    S := 'hbfr_Exec'
+  else
+    S := 'hbfr_Eval';
+  HbFunc.hb_vmPushSymbol(HbFunc.hb_dynsymSymbol(HbFunc.hb_dynsymFindName(PChar(S))));
+  HbFunc.hb_vmPushNil;
+  HbFunc.hb_vmPushString(PChar(AExpr), Length(AExpr));
+  if Length(AParams) > 0 then
+  begin
+    for I := Low(AParams) to High(AParams) do
+    begin
+      V := AParams[I];
+      case V.VType of
+        vtInteger: HbFunc.hb_vmPushNumber(V.VInteger, 255);
+        vtExtended: HbFunc.hb_vmPushNumber(V.VExtended^, 255);
+        vtString: begin
+          S := V.VString^;
+          if DoOemConvert then
+          begin
+            Pc := StrToOem(S);
+            HbFunc.hb_vmPushString(Pc, StrLen(Pc));
+          end
+          else
+            HbFunc.hb_vmPushString(PChar(S), Length(S));
+        end;
+        vtAnsiString: begin
+          S := AnsiString(V.VAnsiString^);
+          if DoOemConvert then
+          begin
+            Pc := StrToOem(S);
+            HbFunc.hb_vmPushString(Pc, StrLen(Pc));
+          end
+          else
+            HbFunc.hb_vmPushString(PChar(S), Length(S));
+        end;
+        vtPChar: begin
+          HbFunc.hb_vmPushString(V.VPChar, StrLen(V.VPChar));
+        end;
+        vtPWideChar: begin
+          HbFunc.hb_vmPushString(V.VPChar, StrLen(V.VPChar));
+        end;
+        vtBoolean: begin
+          HbFunc.hb_vmPushLogical(V.VBoolean);
+        end;
+        vtVariant:
+          case VarType(V.VVariant^) of
+            varDate: begin
+              HbFunc.hb_vmPushDate(HbFunc.hb_dateEncode(YearOf(V.VVariant^),
+                MonthOf(V.VVariant^), DayOf(V.VVariant^)));
+            end;
+            varString: begin
+              S := V.VVariant^;
+              if DoOemConvert then
+              begin
+                Pc := StrToOem(S);
+                HbFunc.hb_vmPushString(Pc, StrLen(Pc));
+              end
+              else
+                HbFunc.hb_vmPushString(PChar(S), Length(S));
+            end;
+            varSmallint, varSingle, varShortInt, varInteger, varDouble,
+            varCurrency, varByte, varWord, varLongWord: HbFunc.hb_vmPushNumber(V.VVariant^, 255);
+            varBoolean: HbFunc.hb_vmPushLogical(V.VVariant^);
+            else HbFunc.hb_vmPushNil;
+          end;
+        else HbFunc.hb_vmPushNil;
+      end;
+    end;
+  end;
+  HbFunc.hb_vmFunction(Length(AParams) + 1);
+  case HbFunc.hb_parinfo( -1 ) of
+    2: Result := HbFunc.hb_parni( -1 );
+    8, $10: Result := HbFunc.hb_parnd( -1 );
+    $20: begin
+      HbFunc.hb_dateDecode( HbFunc.hb_pardl(-1), Y, M, D);
+      Result := EncodeDate(Y, M, D);
+    end;
+    $80: begin
+      Result := Boolean(HbFunc.hb_parl(-1));
+    end;
+    $400, $400+$800: begin
+      if DoOemConvert then
+        Result := OemToStr(HbFunc.hb_parc(-1))
+      else
+      begin
+        SetLength(S, HbFunc.hb_parclen(-1));
+        Move(HbFunc.hb_parc(-1)^, S[1], HbFunc.hb_parclen(-1));
+        Result := S;
+      end;
+    end;
+    else
+      Result := Null;
   end;
 end;
 
