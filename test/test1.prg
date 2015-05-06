@@ -2,7 +2,7 @@
 #include "fileio.ch"
 
 function main(cParam1, cParam2, cParam3, cParam4)
-   LOCAL oFR1, oFR2, oFR3, oFRC, hRow := hb_hash(), i, nt, ny, nu, f, cData
+   LOCAL oFR1, oFR2, oFR3, oFR4, oFRC, hRow := hb_hash(), i, nt, ny, nu, f, cData
    AltD()
    ? "Loading library"
    IF !hbfr_LoadLibrary()
@@ -74,13 +74,21 @@ function main(cParam1, cParam2, cParam3, cParam4)
    oFR3:ModalPreview := .F.
    oFR3:ShowReport()
 
+   oFR4 := TFreeReport():New()
+   oFR4:AddHbDataset('data', 'Eof()', 'DbGoTop()', 'DbSkip()')
+   oFR4:LoadFromFile('test4.frf')
+   oFR4:Title := 'Report #4'
+   oFR4:ModalPreview := .F.
+   oFR4:ShowReport()
+   
    ? "Loading composite report"
    oFRC := TFreeReport():New(.T.)
    oFRC:AddReport(oFR1)
    oFRC:AddReport(oFR2)
    oFRC:AddReport(oFR3)
+   oFRC:AddReport(oFR4)
    oFRC:DoublePass := .T.
-   oFRC:Title := 'Test reports 1,2 and 3'
+   oFRC:Title := 'Test reports 1,2,3 and 4'
    oFRC:ModalPreview := .F.
    oFRC:ShowReport()
 
@@ -94,4 +102,5 @@ function main(cParam1, cParam2, cParam3, cParam4)
    oFR1 := NIL
    oFR2 := NIL
    oFR3 := NIL
+   oFR4 := NIL
    oFRC := NIL
