@@ -139,9 +139,9 @@ METHOD CheckRes(nRes) CLASS TFreeReport
          CASE nRes == -2 .OR. nRes == -3
             cErrMsg := ::GetLastError()
          CASE nRes == -4
-            cErrMsg := 'Invalid parametr type'
+            cErrMsg := 'Invalid argument type'
          CASE nRes == -5
-            cErrMsg := 'Can not load ' + HBFR_LIB_NAME
+            cErrMsg := 'Can not load library ' + HBFR_LIB_NAME
          CASE nRes == -6
             cErrMsg := 'Can not create report object'
          OTHERWISE
@@ -411,12 +411,19 @@ FUNCTION hbfr_Eval(cExpr, p1, p2, p3, p4, p5)
 
 FUNCTION hbfr_Exec(cExpr)
    RETURN &cExpr
+   
+FUNCTION hbfr_SetErrorBlock()
+   ErrorBlock({|oE|Break(oE)})
+   RETURN
 
 #pragma BEGINDUMP
 
 #include "hbapi.h"
 #include "hbvm.h"
 #include "hbdate.h"
+#include "hbxvm.h"
+#include "hbstack.h"
+#include "hbapierr.h"
 
 struct ExpPasFunc {
    void* Thb_dynsymFindName;
@@ -427,7 +434,12 @@ struct ExpPasFunc {
    void* Thb_vmPushNumber;
    void* Thb_vmPushLogical;
    void* Thb_vmPushDate;
+   void* Thb_vmPushItemRef;
    void* Thb_vmFunction;
+   void* Thb_vmDo;
+   void* Thb_vmRequestReenter;
+   void* Thb_vmRequestRestore;
+   void* Thb_vmRequestQuery;
    void* Thb_parinfo;
    void* Thb_parc;
    void* Thb_parclen;
@@ -437,6 +449,14 @@ struct ExpPasFunc {
    void* Thb_parni;
    void* Thb_dateDecode;
    void* Thb_dateEncode;
+   void* Thb_xvmSeqBegin;
+   void* Thb_xvmSeqEnd;
+   void* Thb_xvmSeqRecover;
+   void* Thb_xvmSeqEndTest;
+   void* Thb_stackPop;
+   void* Thb_errorBlock;
+   void* Thb_itemRelease;
+   void* Thb_itemClone;
 };
 
 static struct ExpPasFunc sExtPasFunc;
@@ -451,7 +471,12 @@ HB_FUNC( GETHBPASFUNCS )
    sExtPasFunc.Thb_vmPushNumber = &hb_vmPushNumber;
    sExtPasFunc.Thb_vmPushLogical = &hb_vmPushLogical;
    sExtPasFunc.Thb_vmPushDate = &hb_vmPushDate;
+   sExtPasFunc.Thb_vmPushItemRef = &hb_vmPushItemRef;
    sExtPasFunc.Thb_vmFunction = &hb_vmFunction;
+   sExtPasFunc.Thb_vmDo = &hb_vmDo;
+   sExtPasFunc.Thb_vmRequestReenter = &hb_vmRequestReenter;
+   sExtPasFunc.Thb_vmRequestRestore = &hb_vmRequestRestore;
+   sExtPasFunc.Thb_vmRequestQuery = &hb_vmRequestQuery;
    sExtPasFunc.Thb_parinfo = &hb_parinfo;
    sExtPasFunc.Thb_parc = &hb_parc;
    sExtPasFunc.Thb_parclen = &hb_parclen;
@@ -461,6 +486,14 @@ HB_FUNC( GETHBPASFUNCS )
    sExtPasFunc.Thb_parni = &hb_parni;
    sExtPasFunc.Thb_dateDecode = &hb_dateDecode;
    sExtPasFunc.Thb_dateEncode = &hb_dateEncode;
+   sExtPasFunc.Thb_xvmSeqBegin = &hb_xvmSeqBegin;
+   sExtPasFunc.Thb_xvmSeqEnd = &hb_xvmSeqEnd;
+   sExtPasFunc.Thb_xvmSeqRecover = &hb_xvmSeqRecover;
+   sExtPasFunc.Thb_xvmSeqEndTest = &hb_xvmSeqEndTest;
+   sExtPasFunc.Thb_stackPop = &hb_stackPop;
+   sExtPasFunc.Thb_errorBlock = &hb_errorBlock;
+   sExtPasFunc.Thb_itemRelease = &hb_itemRelease;
+   sExtPasFunc.Thb_itemClone = &hb_itemClone;
    hb_retptr( &sExtPasFunc );
 }
 

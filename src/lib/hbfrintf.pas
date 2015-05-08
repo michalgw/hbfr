@@ -44,7 +44,12 @@ type
   Thb_vmPushNumber = procedure(AVal: Double; ADec: LongInt); cdecl;
   Thb_vmPushLogical = procedure(AVal: LongBool); cdecl;
   Thb_vmPushDate = procedure(AVal: LongInt); cdecl;
+  Thb_vmPushItemRef = procedure(AItem: Pointer); cdecl;
   Thb_vmFunction = procedure(AVal: Word); cdecl;
+  Thb_vmDo = procedure(AVal: Word); cdecl;
+  Thb_vmRequestReenter = function: LongBool; cdecl;
+  Thb_vmRequestRestore = procedure; cdecl;
+  Thb_vmRequestQuery = function: Word; cdecl;
   Thb_parinfo = function(AVal: LongInt): LongWord; cdecl;
   Thb_parc = function(AVal: LongInt): PChar; cdecl;
   Thb_parclen = function(AVal: LongInt): LongInt; cdecl;
@@ -54,6 +59,14 @@ type
   Thb_parni = function(AVal: LongInt): LongInt; cdecl;
   Thb_dateDecode = procedure(AVal: LongInt; var Y, M, D: LongInt); cdecl;
   Thb_dateEncode = function(Y, M, D: LongInt): LongInt; cdecl;
+  Thb_xvmSeqBegin = procedure; cdecl;
+  Thb_xvmSeqEnd = function: LongBool; cdecl;
+  Thb_xvmSeqRecover = function: LongBool; cdecl;
+  Thb_xvmSeqEndTest = function: LongBool; cdecl;
+  Thb_stackPop = procedure; cdecl;
+  Thb_errorBlock = function: Pointer; cdecl;
+  Thb_itemRelease = function(AItem: Pointer): LongBool; cdecl;
+  Thb_itemClone = function(AItem: Pointer): Pointer; cdecl;
 
   PHbFunctions = ^THbFunctions;
   THbFunctions = packed record
@@ -65,7 +78,12 @@ type
     hb_vmPushNumber: Thb_vmPushNumber;
     hb_vmPushLogical: Thb_vmPushLogical;
     hb_vmPushDate: Thb_vmPushDate;
+    hb_vmPushItemRef: Thb_vmPushItemRef;
     hb_vmFunction: Thb_vmFunction;
+    hb_vmDo: Thb_vmDo;
+    hb_vmRequestReenter: Thb_vmRequestReenter;
+    hb_vmRequestRestore: Thb_vmRequestRestore;
+    hb_vmRequestQuery: Thb_vmRequestQuery;
     hb_parinfo: Thb_parinfo;
     hb_parc: Thb_parc;
     hb_parclen: Thb_parclen;
@@ -75,6 +93,14 @@ type
     hb_parni: Thb_parni;
     hb_dateDecode: Thb_dateDecode;
     hb_dateEncode: Thb_dateEncode;
+    hb_xvmSeqBegin: Thb_xvmSeqBegin;
+    hb_xvmSeqEnd: Thb_xvmSeqEnd;
+    hb_xvmSeqRecover: Thb_xvmSeqRecover;
+    hb_xvmSeqEndTest: Thb_xvmSeqEndTest;
+    hb_stackPop: Thb_stackPop;
+    hb_errorBlock: Thb_errorBlock;
+    hb_itemRelease: Thb_itemRelease;
+    hb_itemClone: Thb_itemClone;
   end;
 
 function hbfr_Init(AOemConvert: LongBool; AFunctions: PHbFunctions): Integer; stdcall;
@@ -958,21 +984,50 @@ begin
   end;
 end;
 
+const
+  HB_IT_INTEGER = 2;
+  HB_IT_LONG = 8;
+  HB_IT_DOUBLE = $10;
+  HB_IT_DATE = $20;
+  HB_IT_LOGICAL = $80;
+  HB_IT_STRING = $400;
+  HB_IT_MEMO = $400 or $800;
+
 function HbEval(AExpr: String; AParams: array of const; DoExec: Boolean): Variant;
+
+procedure RestoreErrorBlock(ABlock: Pointer);
+begin
+  HbFunc.hb_vmPushSymbol(HbFunc.hb_dynsymSymbol(HbFunc.hb_dynsymFindName(PChar('ERRORBLOCK'))));
+  HbFunc.hb_vmPushNil;
+  HbFunc.hb_vmPushItemRef(ABlock);
+  HbFunc.hb_vmFunction(1);
+  HbFunc.hb_itemRelease(ABlock);
+end;
+
 var
   I: Integer;
   S: String;
   V: TVarRec;
   Pc: PChar;
   Y,M,D: Integer;
+  OldErrorBlock: Pointer;
 begin
   Result := Null;
   if AExpr = '' then
+    Exit;
+  if not HbFunc.hb_vmRequestReenter then
     Exit;
   if DoExec then
     S := 'hbfr_Exec'
   else
     S := 'hbfr_Eval';
+
+  OldErrorBlock := HbFunc.hb_itemClone(HbFunc.hb_errorBlock);
+  HbFunc.hb_vmPushSymbol(HbFunc.hb_dynsymSymbol(HbFunc.hb_dynsymFindName(PChar('hbfr_SetErrorBlock'))));
+  HbFunc.hb_vmPushNil;
+  HbFunc.hb_vmDo(0);
+
+  HbFunc.hb_xvmSeqBegin;
   HbFunc.hb_vmPushSymbol(HbFunc.hb_dynsymSymbol(HbFunc.hb_dynsymFindName(PChar(S))));
   HbFunc.hb_vmPushNil;
   HbFunc.hb_vmPushString(PChar(AExpr), Length(AExpr));
@@ -1038,30 +1093,43 @@ begin
       end;
     end;
   end;
+  //HbFunc.hb_vmDo(Length(AParams) + 1);
   HbFunc.hb_vmFunction(Length(AParams) + 1);
-  case HbFunc.hb_parinfo( -1 ) of
-    2: Result := HbFunc.hb_parni( -1 );
-    8, $10: Result := HbFunc.hb_parnd( -1 );
-    $20: begin
-      HbFunc.hb_dateDecode( HbFunc.hb_pardl(-1), Y, M, D);
-      Result := EncodeDate(Y, M, D);
-    end;
-    $80: begin
-      Result := Boolean(HbFunc.hb_parl(-1));
-    end;
-    $400, $400+$800: begin
-      if DoOemConvert then
-        Result := OemToStr(HbFunc.hb_parc(-1))
-      else
-      begin
-        SetLength(S, HbFunc.hb_parclen(-1));
-        Move(HbFunc.hb_parc(-1)^, S[1], HbFunc.hb_parclen(-1));
-        Result := S;
+  if HbFunc.hb_xvmSeqEndTest then
+  begin
+    if HbFunc.hb_xvmSeqRecover then
+      HbFunc.hb_stackPop;
+    RestoreErrorBlock(OldErrorBlock);
+    raise Exception.Create('Harbour error.')
+  end
+  else
+  begin
+    case HbFunc.hb_parinfo( -1 ) of
+      HB_IT_INTEGER: Result := HbFunc.hb_parni( -1 );
+      HB_IT_LONG, HB_IT_DOUBLE: Result := HbFunc.hb_parnd( -1 );
+      HB_IT_DATE: begin
+        HbFunc.hb_dateDecode( HbFunc.hb_pardl(-1), Y, M, D);
+        Result := EncodeDate(Y, M, D);
       end;
+      HB_IT_LOGICAL: begin
+        Result := Boolean(HbFunc.hb_parl(-1));
+      end;
+      HB_IT_STRING, HB_IT_MEMO: begin
+        if DoOemConvert then
+          Result := OemToStr(HbFunc.hb_parc(-1))
+        else
+        begin
+          SetLength(S, HbFunc.hb_parclen(-1));
+          Move(HbFunc.hb_parc(-1)^, S[1], HbFunc.hb_parclen(-1));
+          Result := S;
+        end;
+      end;
+      else
+        Result := Null;
     end;
-    else
-      Result := Null;
   end;
+  HbFunc.hb_vmRequestRestore;
+  RestoreErrorBlock(OldErrorBlock);
 end;
 
 procedure FreeReports;
