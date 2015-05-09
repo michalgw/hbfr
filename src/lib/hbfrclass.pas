@@ -118,7 +118,7 @@ implementation
 {$R *.dfm}
 
 uses
-  Printers, hbfrintf, Variants;
+  Printers, hbfrintf, Variants, Forms;
 
 { TTHBFRObj }
 
@@ -521,12 +521,14 @@ end;
 function THBFRObj.ShowPreparedReport: Integer;
 begin
   Report.ShowPreparedReport;
+  Application.ProcessMessages;
   Result := 0;
 end;
 
 function THBFRObj.ShowReport: Integer;
 begin
   Report.ShowReport;
+  Application.ProcessMessages;
   Result := 0;
 end;
 
