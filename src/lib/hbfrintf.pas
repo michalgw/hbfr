@@ -997,11 +997,14 @@ function HbEval(AExpr: String; AParams: array of const; DoExec: Boolean): Varian
 
 procedure RestoreErrorBlock(ABlock: Pointer);
 begin
-  HbFunc.hb_vmPushSymbol(HbFunc.hb_dynsymSymbol(HbFunc.hb_dynsymFindName(PChar('ERRORBLOCK'))));
-  HbFunc.hb_vmPushNil;
-  HbFunc.hb_vmPushItemRef(ABlock);
-  HbFunc.hb_vmFunction(1);
-  HbFunc.hb_itemRelease(ABlock);
+  if ABlock <> nil then
+  begin
+    HbFunc.hb_vmPushSymbol(HbFunc.hb_dynsymSymbol(HbFunc.hb_dynsymFindName(PChar('ERRORBLOCK'))));
+    HbFunc.hb_vmPushNil;
+    HbFunc.hb_vmPushItemRef(ABlock);
+    HbFunc.hb_vmFunction(1);
+    HbFunc.hb_itemRelease(ABlock);
+  end;
 end;
 
 var
@@ -1011,8 +1014,10 @@ var
   Pc: PChar;
   Y,M,D: Integer;
   OldErrorBlock: Pointer;
+  FncSym: Pointer;
 begin
   Result := Null;
+  OldErrorBlock := nil;
   if AExpr = '' then
     Exit;
   if not HbFunc.hb_vmRequestReenter then
@@ -1023,14 +1028,29 @@ begin
     S := 'hbfr_Eval';
 
   OldErrorBlock := HbFunc.hb_itemClone(HbFunc.hb_errorBlock);
-  HbFunc.hb_vmPushSymbol(HbFunc.hb_dynsymSymbol(HbFunc.hb_dynsymFindName(PChar('hbfr_SetErrorBlock'))));
+
+  FncSym := HbFunc.hb_dynsymFindName(PChar('hbfr_SetErrorBlock'));
+  if FncSym = nil then
+  begin
+    RestoreErrorBlock(OldErrorBlock);
+    raise Exception.Create('Function not found: hbfr_SetErrorBlock');
+  end;
+  HbFunc.hb_vmPushSymbol(HbFunc.hb_dynsymSymbol(FncSym));
   HbFunc.hb_vmPushNil;
   HbFunc.hb_vmDo(0);
 
   HbFunc.hb_xvmSeqBegin;
-  HbFunc.hb_vmPushSymbol(HbFunc.hb_dynsymSymbol(HbFunc.hb_dynsymFindName(PChar(S))));
+
+  FncSym := HbFunc.hb_dynsymFindName(PChar(S));
+  if FncSym = nil then
+  begin
+    RestoreErrorBlock(OldErrorBlock);
+    raise Exception.Create('Function not found: ' + S);
+  end;
+  HbFunc.hb_vmPushSymbol(HbFunc.hb_dynsymSymbol(FncSym));
   HbFunc.hb_vmPushNil;
   HbFunc.hb_vmPushString(PChar(AExpr), Length(AExpr));
+
   if Length(AParams) > 0 then
   begin
     for I := Low(AParams) to High(AParams) do
@@ -1100,7 +1120,7 @@ begin
     if HbFunc.hb_xvmSeqRecover then
       HbFunc.hb_stackPop;
     RestoreErrorBlock(OldErrorBlock);
-    raise Exception.Create('Harbour error.')
+    raise Exception.Create('An error occurred while executing harbour code')
   end
   else
   begin
