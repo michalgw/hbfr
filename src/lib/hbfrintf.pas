@@ -45,6 +45,7 @@ type
   Thb_vmPushLogical = procedure(AVal: LongBool); cdecl;
   Thb_vmPushDate = procedure(AVal: LongInt); cdecl;
   Thb_vmPushItemRef = procedure(AItem: Pointer); cdecl;
+  Thb_vmPushTimeStamp = procedure(AJulian, AMSec: LongInt); cdecl;
   Thb_vmFunction = procedure(AVal: Word); cdecl;
   Thb_vmDo = procedure(AVal: Word); cdecl;
   Thb_vmRequestReenter = function: LongBool; cdecl;
@@ -57,8 +58,12 @@ type
   Thb_pardl = function(AVal: LongInt): LongInt; cdecl;
   Thb_parnd = function(AVal: LongInt): Double; cdecl;
   Thb_parni = function(AVal: LongInt): LongInt; cdecl;
+  Thb_partd = function(AVal: LongInt): Double; cdecl;
   Thb_dateDecode = procedure(AVal: LongInt; var Y, M, D: LongInt); cdecl;
   Thb_dateEncode = function(Y, M, D: LongInt): LongInt; cdecl;
+  Thb_timeStampUnpackDT = procedure(ATimeStamp: Double; var Yulian, MiliSec: Longint); cdecl;
+  Thb_timeStampPack = function(Y, M, D, H, Mi, S, MS: Integer): Double; cdecl;
+  Thb_timeStampUnpack = procedure(ATimeStamp: Double; var Y, M, D, H, Mi, S, MS: Integer); cdecl;
   Thb_xvmSeqBegin = procedure; cdecl;
   Thb_xvmSeqEnd = function: LongBool; cdecl;
   Thb_xvmSeqRecover = function: LongBool; cdecl;
@@ -79,6 +84,7 @@ type
     hb_vmPushLogical: Thb_vmPushLogical;
     hb_vmPushDate: Thb_vmPushDate;
     hb_vmPushItemRef: Thb_vmPushItemRef;
+    hb_vmPushTimeStamp: Thb_vmPushTimeStamp;
     hb_vmFunction: Thb_vmFunction;
     hb_vmDo: Thb_vmDo;
     hb_vmRequestReenter: Thb_vmRequestReenter;
@@ -91,8 +97,12 @@ type
     hb_pardl: Thb_pardl;
     hb_parnd: Thb_parnd;
     hb_parni: Thb_parni;
+    hb_partd: Thb_partd;
     hb_dateDecode: Thb_dateDecode;
     hb_dateEncode: Thb_dateEncode;
+    hb_timeStampUnpackDT: Thb_timeStampUnpackDT;
+    hb_timeStampPack: Thb_timeStampPack;
+    hb_timeStampUnpack: Thb_timeStampUnpack;
     hb_xvmSeqBegin: Thb_xvmSeqBegin;
     hb_xvmSeqEnd: Thb_xvmSeqEnd;
     hb_xvmSeqRecover: Thb_xvmSeqRecover;
@@ -989,6 +999,7 @@ const
   HB_IT_LONG = 8;
   HB_IT_DOUBLE = $10;
   HB_IT_DATE = $20;
+  HB_IT_TIMESTAMP = $40;
   HB_IT_LOGICAL = $80;
   HB_IT_STRING = $400;
   HB_IT_MEMO = $400 or $800;
@@ -1012,9 +1023,10 @@ var
   S: String;
   V: TVarRec;
   Pc: PChar;
-  Y,M,D: Integer;
+  Y,M,D,H,MN,SC,MS: Integer;
   OldErrorBlock: Pointer;
   FncSym: Pointer;
+  TmpY, TmpMS: LongInt;
 begin
   Result := Null;
   OldErrorBlock := nil;
@@ -1091,8 +1103,17 @@ begin
         vtVariant:
           case VarType(V.VVariant^) of
             varDate: begin
-              HbFunc.hb_vmPushDate(HbFunc.hb_dateEncode(YearOf(V.VVariant^),
-                MonthOf(V.VVariant^), DayOf(V.VVariant^)));
+              if TimeOf(V.VVariant^) = 0 then
+                HbFunc.hb_vmPushDate(HbFunc.hb_dateEncode(YearOf(V.VVariant^),
+                  MonthOf(V.VVariant^), DayOf(V.VVariant^)))
+              else
+              begin
+                HbFunc.hb_timeStampUnpackDT(HbFunc.hb_timeStampPack(YearOf(V.VVariant^),
+                  MonthOf(V.VVariant^), DayOf(V.VVariant^), HourOf(V.VVariant^),
+                  MinuteOf(V.VVariant^), SecondOf(V.VVariant^), MilliSecondOf(V.VVariant^)),
+                  TmpY, TmpMS);
+                HbFunc.hb_vmPushTimeStamp(TmpY, TmpMS);
+              end;
             end;
             varString: begin
               S := V.VVariant^;
@@ -1130,6 +1151,10 @@ begin
       HB_IT_DATE: begin
         HbFunc.hb_dateDecode( HbFunc.hb_pardl(-1), Y, M, D);
         Result := EncodeDate(Y, M, D);
+      end;
+      HB_IT_TIMESTAMP: begin
+        HbFunc.hb_timeStampUnpack(HbFunc.hb_partd(-1), Y, M, D, H, MN, SC, MS);
+        Result := EncodeDateTime(Y, M, D, H, MN, SC, MS);
       end;
       HB_IT_LOGICAL: begin
         Result := Boolean(HbFunc.hb_parl(-1));

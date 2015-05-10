@@ -435,6 +435,7 @@ struct ExpPasFunc {
    void* Thb_vmPushLogical;
    void* Thb_vmPushDate;
    void* Thb_vmPushItemRef;
+   void* Thb_vmPushTimeStamp;
    void* Thb_vmFunction;
    void* Thb_vmDo;
    void* Thb_vmRequestReenter;
@@ -447,8 +448,12 @@ struct ExpPasFunc {
    void* Thb_pardl;
    void* Thb_parnd;
    void* Thb_parni;
+   void* Thb_partd;
    void* Thb_dateDecode;
    void* Thb_dateEncode;
+   void* Thb_timeStampUnpackDT;
+   void* Thb_timeStampPack;
+   void* Thb_timeStampUnpack;
    void* Thb_xvmSeqBegin;
    void* Thb_xvmSeqEnd;
    void* Thb_xvmSeqRecover;
@@ -472,6 +477,7 @@ HB_FUNC( GETHBPASFUNCS )
    sExtPasFunc.Thb_vmPushLogical = &hb_vmPushLogical;
    sExtPasFunc.Thb_vmPushDate = &hb_vmPushDate;
    sExtPasFunc.Thb_vmPushItemRef = &hb_vmPushItemRef;
+   sExtPasFunc.Thb_vmPushTimeStamp = &hb_vmPushTimeStamp;
    sExtPasFunc.Thb_vmFunction = &hb_vmFunction;
    sExtPasFunc.Thb_vmDo = &hb_vmDo;
    sExtPasFunc.Thb_vmRequestReenter = &hb_vmRequestReenter;
@@ -484,8 +490,12 @@ HB_FUNC( GETHBPASFUNCS )
    sExtPasFunc.Thb_pardl = &hb_pardl;
    sExtPasFunc.Thb_parnd = &hb_parnd;
    sExtPasFunc.Thb_parni = &hb_parni;
+   sExtPasFunc.Thb_partd = &hb_partd;
    sExtPasFunc.Thb_dateDecode = &hb_dateDecode;
    sExtPasFunc.Thb_dateEncode = &hb_dateEncode;
+   sExtPasFunc.Thb_timeStampUnpackDT = &hb_timeStampUnpackDT;
+   sExtPasFunc.Thb_timeStampPack = &hb_timeStampPack;
+   sExtPasFunc.Thb_timeStampUnpack = &hb_timeStampUnpack;
    sExtPasFunc.Thb_xvmSeqBegin = &hb_xvmSeqBegin;
    sExtPasFunc.Thb_xvmSeqEnd = &hb_xvmSeqEnd;
    sExtPasFunc.Thb_xvmSeqRecover = &hb_xvmSeqRecover;
