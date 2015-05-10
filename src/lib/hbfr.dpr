@@ -59,6 +59,7 @@ exports
   hbfr_SaveToFile,
   hbfr_LoadFromMemory,
   hbfr_LoadPreparedReport,
+  hbfr_SavePreparedReport,
   hbfr_ShowReport,
   hbfr_ShowPreparedReport,
   hbfr_PrepareReport,

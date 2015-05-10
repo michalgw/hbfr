@@ -105,6 +105,7 @@ type
     function SetPrinter(APrinterName: String): Integer;
 
     function LoadPreparedReport(AFileName: String): Integer;
+    function SavePreparedReport(AFileName: String): Integer;
     function LoadFromFile(AFileName: String): Integer;
     function SaveToFile(AFileName: String): Integer;
     function LoadFromMemory(ASource: Pointer; ALength: Integer): Integer;
@@ -498,6 +499,12 @@ function THBFRObj.PrintPreparedReport(APageNumber: String;
   ACopies: Integer): Integer;
 begin
   Report.PrintPreparedReport(APageNumber, ACopies);
+  Result := 0;
+end;
+
+function THBFRObj.SavePreparedReport(AFileName: String): Integer;
+begin
+  Report.SavePreparedReport(AFileName);
   Result := 0;
 end;
 

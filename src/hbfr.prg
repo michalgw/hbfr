@@ -54,6 +54,7 @@ CREATE CLASS TFreeReport
    METHOD LoadFromFile(cFileName)
    METHOD SaveToFile(cFileName)
    METHOD LoadPreparedReport(cFileName)
+   METHOD SavePreparedReport(cFileName)
    METHOD LoadFromMemory(cData)
 
    METHOD AddValue(cValueName, xValue)
@@ -206,6 +207,11 @@ METHOD SaveToFile(cFileName) CLASS TFreeReport
 
 METHOD LoadPreparedReport(cFileName) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_LoadPreparedReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
+      HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cFileName))
+   RETURN
+
+METHOD SavePreparedReport(cFileName) CLASS TFreeReport
+   ::CheckRes(hb_DynCall({'hbfr_SavePreparedReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cFileName))
    RETURN
 

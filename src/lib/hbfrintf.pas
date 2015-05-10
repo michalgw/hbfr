@@ -138,6 +138,7 @@ function hbfr_ClearReports(AHandle: LongWord): Integer; stdcall;
 function hbfr_LoadFromFile(AHandle: LongWord; AFileName: PChar): Integer; stdcall;
 function hbfr_SaveToFile(AHandle: LongWord; AFileName: PChar): Integer; stdcall;
 function hbfr_LoadPreparedReport(AHandle: LongWord; AFileName: PChar): Integer; stdcall;
+function hbfr_SavePreparedReport(AHandle: LongWord; AFileName: PChar): Integer; stdcall;
 function hbfr_LoadFromMemory(AHandle: LongWord; AData: Pointer; ALength: Integer): Integer; stdcall;
 
 function hbfr_PrepareReport(AHandle: LongWord): Integer; stdcall;
@@ -508,6 +509,25 @@ begin
         Result := THBFRObj(AHandle).LoadPreparedReport(OemToStr(AFileName))
       else
         Result := THBFRObj(AHandle).LoadPreparedReport(String(AFileName))
+    else
+      Result := -1;
+  except
+    on E: Exception do
+    begin
+      THBFRObj(AHandle).LastErrorMsg := E.Message;
+      Result := -2;
+    end;
+  end;
+end;
+
+function hbfr_SavePreparedReport(AHandle: LongWord; AFileName: PChar): Integer; stdcall;
+begin
+  try
+    if CheckHandle(AHandle) then
+      if DoOemConvert then
+        Result := THBFRObj(AHandle).SavePreparedReport(OemToStr(AFileName))
+      else
+        Result := THBFRObj(AHandle).SavePreparedReport(String(AFileName))
     else
       Result := -1;
   except
