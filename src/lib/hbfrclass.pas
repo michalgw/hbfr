@@ -44,6 +44,7 @@ const
 type
   THbDataset = class(TfrDataset)
   public
+    IsError: Boolean;
     ExprCheckEOF: String;
     ExprFirst: String;
     ExprNext: String;
@@ -118,7 +119,7 @@ implementation
 {$R *.dfm}
 
 uses
-  Printers, hbfrintf, Variants, Forms;
+  Printers, hbfrintf, Variants, Forms, Windows;
 
 { TTHBFRObj }
 
@@ -149,7 +150,7 @@ begin
   end;
   DS := THbDataset.Create(Self);
   DS.Name := StringReplace(ADatasetName, NAME_SEPARATOR, SAFE_SEPARATOR, [rfReplaceAll]);
-  DS.Tag := 0;
+  DS.IsError := False;
   DS.ExprCheckEOF := AExprCheckEof;
   DS.ExprFirst := AExprFirst;
   DS.ExprNext := AExprNext;
@@ -539,32 +540,59 @@ end;
 
 { THbDataset }
 
+const
+  ERR_MSG_FMT = 'An error occurred while performing Harbour code in dataset:' + #13#10 +
+    'Dataset name: %s' + #13#10 +
+    'Expression: %s';
+
 function THbDataset.Eof: Boolean;
 var
   V: Variant;
 begin
   Result := True;
-  if ExprCheckEOF <> '' then
-  begin
+  if (not IsError) and (ExprCheckEOF <> '') then
+  try
     V := HbEval(ExprCheckEOF, [], True);
     if VarIsType(V, varBoolean) then
       Result := V
     else
       if VarIsNumeric(V) then
         Result := V <> 0;
+  except
+    on E: Exception do
+    begin
+      IsError := True;
+      Application.MessageBox(PChar(Format(ERR_MSG_FMT, [Name, ExprCheckEOF])), 'Error', MB_OK + MB_ICONERROR);
+    end;
   end;
 end;
 
 procedure THbDataset.First;
 begin
-  if ExprFirst <> '' then
+  if (not IsError) and (ExprFirst <> '') then
+  try
     HbEval(ExprFirst, [], True);
+  except
+    on E: Exception do
+    begin
+      IsError := True;
+      Application.MessageBox(PChar(Format(ERR_MSG_FMT, [Name, ExprFirst])), 'Error', MB_OK + MB_ICONERROR);
+    end;
+  end;
 end;
 
 procedure THbDataset.Next;
 begin
-  if ExprNext <> '' then
+  if (not IsError) and (ExprNext <> '') then
+  try
     HbEval(ExprNext, [], True);
+  except
+    on E: Exception do
+    begin
+      IsError := True;
+      Application.MessageBox(PChar(Format(ERR_MSG_FMT, [Name, ExprNext])), 'Error', MB_OK + MB_ICONERROR);
+    end;
+  end;
 end;
 
 end.
