@@ -684,7 +684,7 @@ begin
   try
     if CheckHandle(AHandle) then
     begin
-      AValue := THBFRObj(AHandle).Report.PreviewVisible;
+      AValue := THBFRObj(AHandle).Report.IsPreviewVisible;
       Result := 0;
     end
     else
