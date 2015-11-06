@@ -1,0 +1,3 @@
+[submodule "FreeReport"]
+	path = FreeReport
+	url = https://github.com/FastReports/FreeReport.git
