@@ -148,6 +148,9 @@ function hbfr_PrintPreparedReport(AHandle: LongWord; APages: PChar; ACopies: Int
 function hbfr_DesignReport(AHandle: LongWord): Integer; stdcall;
 function hbfr_EditPreparedReport(AHandle: LongWord; APageIndex: Integer): Integer; stdcall;
 
+function hbfr_ClosePreview(AHandle: LongWord): Integer; stdcall;
+function hbfr_IsPreviewVisible(AHandle: LongWord; var AValue: LongBool): Integer; stdcall;
+
 function hbfr_GetTitle(AHandle: LongWord; ATitle: PChar): Integer; stdcall;
 function hbfr_SetTitle(AHandle: LongWord; ATitle: PChar): Integer; stdcall;
 function hbfr_GetInitialZoom(AHandle: LongWord; var AZoom: Integer): Integer; stdcall;
@@ -164,6 +167,9 @@ function hbfr_GetDoublePass(AHandle: LongWord; var AValue: LongBool): Integer; s
 function hbfr_SetDoublePass(AHandle: LongWord; AValue: LongBool): Integer; stdcall;
 function hbfr_GetModalPreview(AHandle: LongWord; var AValue: LongBool): Integer; stdcall;
 function hbfr_SetModalPreview(AHandle: LongWord; AValue: LongBool): Integer; stdcall;
+
+function hbfr_GetOnClosePreview(AHandle: LongWord; AEvent: PChar): Integer; stdcall;
+function hbfr_SetOnClosePreview(AHandle: LongWord; AEvent: PChar): Integer; stdcall;
 
 function hbfr_SetPrinter(AHandle: LongWord; APrinterName: PChar): Integer; stdcall;
 
@@ -451,7 +457,7 @@ function hbfr_ClearReports(AHandle: LongWord): Integer; stdcall;
 begin
   try
     if CheckHandle(AHandle) then
-      Result := THBFRObj(AHandle).ClearData
+      Result := THBFRObj(AHandle).ClearReports
     else
       Result := -1;
   except
@@ -643,6 +649,44 @@ begin
   try
     if CheckHandle(AHandle) then
       Result := THBFRObj(AHandle).EditPreparedReport(APageIndex)
+    else
+      Result := -1;
+  except
+    on E: Exception do
+    begin
+      THBFRObj(AHandle).LastErrorMsg := E.Message;
+      Result := -2;
+    end;
+  end;
+end;
+
+function hbfr_ClosePreview(AHandle: LongWord): Integer; stdcall;
+begin
+  try
+    if CheckHandle(AHandle) then
+    begin
+      THBFRObj(AHandle).Report.ClosePreview;
+      Result := 0;
+    end
+    else
+      Result := -1;
+  except
+    on E: Exception do
+    begin
+      THBFRObj(AHandle).LastErrorMsg := E.Message;
+      Result := -2;
+    end;
+  end;
+end;
+
+function hbfr_IsPreviewVisible(AHandle: LongWord; var AValue: LongBool): Integer; stdcall;
+begin
+  try
+    if CheckHandle(AHandle) then
+    begin
+      AValue := THBFRObj(AHandle).Report.PreviewVisible;
+      Result := 0;
+    end
     else
       Result := -1;
   except
@@ -954,6 +998,53 @@ begin
     if CheckHandle(AHandle) then
     begin
       THBFRObj(AHandle).Report.ModalPreview := AValue;
+      Result := 0;
+    end
+    else
+      Result := -1;
+  except
+    on E: Exception do
+    begin
+      THBFRObj(AHandle).LastErrorMsg := E.Message;
+      Result := -2;
+    end;
+  end;
+end;
+
+function hbfr_GetOnClosePreview(AHandle: LongWord; AEvent: PChar): Integer; stdcall;
+var
+  S: PChar;
+begin
+  try
+    if CheckHandle(AHandle) then
+    begin
+      if DoOemConvert then
+        S := StrToOem(Copy(THBFRObj(AHandle).OnClosePrev, 1, 255))
+      else
+        S := PChar(Copy(THBFRObj(AHandle).OnClosePrev, 1, 255));
+      StrCopy(AEvent, S);
+      Result := 0;
+    end
+    else
+      Result := -1;
+  except
+    on E: Exception do
+    begin
+      THBFRObj(AHandle).LastErrorMsg := E.Message;
+      Result := -2;
+    end;
+  end;
+end;
+
+function hbfr_SetOnClosePreview(AHandle: LongWord; AEvent: PChar): Integer; stdcall;
+begin
+  try
+    if CheckHandle(AHandle) then
+    begin
+      if DoOemConvert then
+        THBFRObj(AHandle).OnClosePrev := OemToStr(AEvent)
+      else
+        THBFRObj(AHandle).OnClosePrev := String(AEvent);
       Result := 0;
     end
     else

@@ -70,6 +70,9 @@ CREATE CLASS TFreeReport
    METHOD ShowPreparedReport()
    METHOD EditPreparedReport(nPageIndex)
    METHOD PrintPreparedReport(cPages, nCopies)
+   
+   METHOD ClosePreview()
+   METHOD IsPreviewVisible()
 
    METHOD SetPrinter(cPrinterName)
 
@@ -91,6 +94,8 @@ CREATE CLASS TFreeReport
    ASSIGN DoublePass METHOD SetDoublePass
    ACCESS ModalPreview METHOD GetModalPreview
    ASSIGN ModalPreview METHOD SetModalPreview
+   ACCESS OnClosePreview METHOD GetOnClosePreview
+   ASSIGN OnClosePreview METHOD SetOnClosePreview
 
 ENDCLASS
 
@@ -319,6 +324,18 @@ METHOD PrintPreparedReport(cPages, nCopies) CLASS TFreeReport
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_INT}, ::nObjHandle, cPages, nCopies))
    RETURN
 
+METHOD ClosePreview() CLASS TFreeReport
+   ::CheckRes(hb_DynCall({'hbfr_ClosePreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
+      HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle))
+   RETURN
+   
+METHOD IsPreviewVisible() CLASS TFreeReport
+   LOCAL lGButt := .F.
+   ::CheckRes(hb_DynCall({'hbfr_IsPreviewVisible', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
+      HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, @lGButt))
+   RETURN lGButt
+
+
 METHOD SetPrinter(cPrinterName) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetPrinter', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cPrinterName))
@@ -412,6 +429,17 @@ METHOD SetModalPreview(lVal) CLASS TFreeReport
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, lVal))
    RETURN
    
+METHOD GetOnClosePreview() CLASS TFreeReport
+   LOCAL cTitle := Space(255)
+   ::CheckRes(hb_DynCall({'hbfr_GetOnClosePreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
+      HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR + HB_DYC_OPT_NULLTERM}, ::nObjHandle, @cTitle))
+   RETURN cTitle
+
+METHOD SetOnClosePreview(cTitle) CLASS TFreeReport
+   ::CheckRes(hb_DynCall({'hbfr_SetOnClosePreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
+      HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cTitle))
+   RETURN
+
 FUNCTION hbfr_Eval(cExpr, p1, p2, p3, p4, p5)
    RETURN Eval(&(cExpr), p1, p2, p3, p4, p5)
 

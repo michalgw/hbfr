@@ -81,9 +81,11 @@ type
     procedure FRGetValue(const ParName: String; var ParValue: Variant);
     procedure FRUserFunction(const Name: String; p1, p2, p3: Variant;
                              var Val: String);
+    procedure OnClosePreview(Sender: TObject);
   public
     Report: TfrReport;
     LastErrorMsg: String;
+    OnClosePrev: String;
     constructor CreateC(AOwner: TComponent; AComposite: Boolean = False);
     function AddValue(AValueName: String; AValue: Variant): Integer;
     function AddDataset(ADatasetName: String): Integer;
@@ -226,6 +228,8 @@ begin
   FDatasets := TList.Create;
   Report.OnGetValue := FRGetValue;
   Report.OnUserFunction := FRUserFunction;
+  Report.OnClosePreview := OnClosePreview;
+  OnClosePrev := '';
 end;
 
 procedure THBFRObj.DataModuleDestroy(Sender: TObject);
@@ -485,6 +489,12 @@ function THBFRObj.LoadPreparedReport(AFileName: String): Integer;
 begin
   Report.LoadPreparedReport(AFileName);
   Result := 0;
+end;
+
+procedure THBFRObj.OnClosePreview(Sender: TObject);
+begin
+  if OnClosePrev <> '' then
+    HbEval(OnClosePrev, []);
 end;
 
 function THBFRObj.PrepareReport: Integer;
