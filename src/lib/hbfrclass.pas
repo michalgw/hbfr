@@ -494,7 +494,7 @@ end;
 procedure THBFRObj.OnClosePreview(Sender: TObject);
 begin
   if OnClosePrev <> '' then
-    HbEval(OnClosePrev, []);
+    HbEval(OnClosePrev, [], True);
 end;
 
 function THBFRObj.PrepareReport: Integer;
