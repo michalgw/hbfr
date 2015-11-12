@@ -131,7 +131,7 @@ var
   DS: TfrUserDataset;
 begin
   DS := TfrUserDataset.Create(Self);
-  DS.Name := StringReplace(ADatasetName, NAME_SEPARATOR, SAFE_SEPARATOR, [rfReplaceAll]);
+  DS.Name := StringReplace(UpperCase(ADatasetName), NAME_SEPARATOR, SAFE_SEPARATOR, [rfReplaceAll]);
   DS.Tag := 0;
   DS.OnCheckEOF := DSCheckEof;
   DS.OnFirst := DSFirst;
@@ -152,7 +152,7 @@ begin
     Exit;
   end;
   DS := THbDataset.Create(Self);
-  DS.Name := StringReplace(ADatasetName, NAME_SEPARATOR, SAFE_SEPARATOR, [rfReplaceAll]);
+  DS.Name := StringReplace(UpperCase(ADatasetName), NAME_SEPARATOR, SAFE_SEPARATOR, [rfReplaceAll]);
   DS.IsError := False;
   DS.ExprCheckEOF := AExprCheckEof;
   DS.ExprFirst := AExprFirst;
@@ -179,6 +179,7 @@ var
   FNames: TStringList;
 begin
   Result := -3;
+  AValueName := UpperCase(AValueName);
   if DecodeName(AValueName, FNames) then
   begin
     A := FData[FNames[0]];
@@ -244,6 +245,7 @@ function THBFRObj.DatasetByName(ADataSet: String): TfrUserDataset;
 var
   I: Integer;
 begin
+  ADataSet := UpperCase(ADataSet);
   Result := nil;
   for I := 0 to FDatasets.Count - 1 do
     if (TObject(FDatasets[I]) is TfrUserDataset) and (TfrUserDataset(FDatasets[I]).Name = ADataSet) then
@@ -270,6 +272,7 @@ function THBFRObj.DeleteData(AName: String): Integer;
 var
   It: TSmpAssocArray;
 begin
+  AName := UpperCase(AName);
   It := GetByName(AName);
   if (It <> nil) and (It.Parent <> nil) then
   begin
@@ -358,7 +361,7 @@ begin
       ParValue := GetByName(ParName).Value
     else
     begin
-      if DecodeName(ParName, FNames) then
+      if DecodeName(UpperCase(ParName), FNames) then
         case FNames.Count of
           // Master dataset
           2: begin
@@ -429,6 +432,7 @@ var
   FNames: TStringList;
 begin
   Result := Nil;
+  AName := UpperCase(AName);
   if DecodeName(AName, FNames) then
   begin
     A := FData.ByName(FNames[0]);
@@ -552,7 +556,7 @@ end;
 
 function THBFRObj.ValueExist(AName: String): Boolean;
 begin
-  Result := Assigned(GetByName(AName));
+  Result := Assigned(GetByName(UpperCase(AName)));
 end;
 
 { THbDataset }
