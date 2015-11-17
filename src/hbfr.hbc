@@ -1,0 +1,7 @@
+description=FreeReport for Harbour
+
+incpaths=.
+
+headers=hbfr.ch
+
+libs=${_HB_DYNPREF}${hb_name}${_HB_DYNSUFF}
