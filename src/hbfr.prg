@@ -61,7 +61,7 @@ CREATE CLASS TFreeReport
    METHOD AddRow(cTableName, aValues, aNames)
    METHOD AddDataset(cDatasetName)
    METHOD AddHbDataset(cDatasetName, cExprCheckEOF, cExprFirst, cExprNext)
-   METHOD RowCount(cValueName)
+   METHOD RowCount(cTableName)
    METHOD ClearData()
 
    METHOD ShowReport()
@@ -76,7 +76,7 @@ CREATE CLASS TFreeReport
 
    METHOD SetPrinter(cPrinterName)
 
-   DESTRUCTOR Free()
+   DESTRUCTOR FreeFR()
 
    ACCESS Title METHOD GetTitle
    ASSIGN Title METHOD SetTitle
@@ -108,7 +108,7 @@ FUNCTION hbfr_ProcessMessages()
       RETURN -1
    ENDIF
    nRes := hb_DynCall({'hbfr_ProcessMessages', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL)})
-   RETURN
+   RETURN nRes
 
 FUNCTION hbfr_LoadLibrary(cLibName, lOemConvert)
    LOCAL nRes
@@ -135,9 +135,10 @@ FUNCTION hbfr_LoadLibrary(cLibName, lOemConvert)
          RETURN .T.
       ENDIF
    ENDIF
+   RETURN .F.
 
 METHOD CheckRes(nRes) CLASS TFreeReport
-   LOCAL cErrMsg := '', oErr
+   LOCAL cErrMsg, oErr
    IF nRes < 0
       DO CASE
          CASE nRes == -1
@@ -158,6 +159,7 @@ METHOD CheckRes(nRes) CLASS TFreeReport
       oErr:description := cErrMsg
       Break oErr
    ENDIF
+   RETURN NIL
 
 METHOD GetLastError() CLASS TFreeReport
    LOCAL nRes, cError := Space(255)
@@ -183,49 +185,49 @@ METHOD New(lComposite) CLASS TFreeReport
    ENDIF
    RETURN Self
 
-METHOD Free() CLASS TFreeReport
+METHOD FreeFR() CLASS TFreeReport
    RETURN hb_DynCall({'hbfr_Free', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle)
 
 METHOD IsComposite() CLASS TFreeReport
-   RETURN lComposite
+   RETURN ::lComposite
 
 METHOD AddReport(oReport) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_AddReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle, oReport:nObjHandle))
-   RETURN
+   RETURN NIL
 
 METHOD ClearReports() CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_ClearReports', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle))
-   RETURN
+   RETURN NIL
 
 METHOD LoadFromFile(cFileName) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_LoadFromFile', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cFileName))
-   RETURN
+   RETURN NIL
 
 METHOD SaveToFile(cFileName) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SaveToFile', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cFileName))
-   RETURN
+   RETURN NIL
 
 METHOD LoadPreparedReport(cFileName) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_LoadPreparedReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cFileName))
-   RETURN
+   RETURN NIL
 
 METHOD SavePreparedReport(cFileName) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SavePreparedReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cFileName))
-   RETURN
+   RETURN NIL
 
 METHOD LoadFromMemory(cData) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_LoadFromMemory', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR + HB_DYN_ENC_RAW, HB_DYN_CTYPE_INT}, ::nObjHandle, cData, Len(cData)))
-   RETURN
+   RETURN NIL
 
-METHOD AddValue(cValueName, xValue, aNames) CLASS TFreeReport
+METHOD AddValue(cValueName, xValue) CLASS TFreeReport
    LOCAL cParamType, nRet
    cParamType := ValType(xValue)
    DO CASE
@@ -251,10 +253,10 @@ METHOD AddValue(cValueName, xValue, aNames) CLASS TFreeReport
          nRet := -4
    ENDCASE
    ::CheckRes(nRet)
-   RETURN
+   RETURN NIL
 
 METHOD AddRow(cTableName, aValues, aNames) CLASS TFreeReport
-   LOCAL nRow := 0, i := 0, cVType, cValName
+   LOCAL nRow, i, cVType
    cVType := ValType(aValues)
    IF cVType == 'H' .AND. aNames == NIL
       aNames := hb_HKeys(aValues)
@@ -267,21 +269,21 @@ METHOD AddRow(cTableName, aValues, aNames) CLASS TFreeReport
          ::AddValue(cTableName + ':' + AllTrim(Str(nRow)) + ':' + aNames[i], aValues[i])
       ENDIF
    NEXT
-   RETURN
+   RETURN NIL
 
 METHOD AddDataset(cDatasetName) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_AddDataset', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cDatasetName))
-   RETURN
+   RETURN NIL
 
 METHOD AddHbDataset(cDatasetName, cExprCheckEOF, cExprFirst, cExprNext) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_AddHbDataset', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_CHAR_PTR},;
 	  ::nObjHandle, cDatasetName, cExprCheckEOF, cExprFirst, cExprNext))
-   RETURN
+   RETURN NIL
 
 METHOD RowCount(cTableName) CLASS TFreeReport
-   LOCAL nRes := 0
+   LOCAL nRes
    nRes := hb_DynCall({'hbfr_GetRowCount', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cTableName)
    IF nRes < 0
@@ -292,42 +294,42 @@ METHOD RowCount(cTableName) CLASS TFreeReport
 METHOD ClearData() CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_ClearData', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle))
-   RETURN
+   RETURN NIL
 
 METHOD ShowReport()CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_ShowReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle))
-   RETURN
+   RETURN NIL
 
 METHOD DesignReport() CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_DesignReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle))
-   RETURN
+   RETURN NIL
 
 METHOD PrepareReport() CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_PrepareReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle))
-   RETURN
+   RETURN NIL
 
 METHOD ShowPreparedReport() CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_ShowPreparedReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle))
-   RETURN
+   RETURN NIL
 
 METHOD EditPreparedReport(nPageIndex) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_EditPreparedReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_INT}, ::nObjHandle, nPageIndex))
-   RETURN
+   RETURN NIL
 
 METHOD PrintPreparedReport(cPages, nCopies) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_PrintPreparedReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_INT}, ::nObjHandle, cPages, nCopies))
-   RETURN
+   RETURN NIL
 
 METHOD ClosePreview() CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_ClosePreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle))
-   RETURN
+   RETURN NIL
    
 METHOD IsPreviewVisible() CLASS TFreeReport
    LOCAL lGButt := .F.
@@ -339,7 +341,7 @@ METHOD IsPreviewVisible() CLASS TFreeReport
 METHOD SetPrinter(cPrinterName) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetPrinter', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cPrinterName))
-   RETURN
+   RETURN NIL
 
 METHOD GetTitle() CLASS TFreeReport
    LOCAL cTitle := Space(255)
@@ -350,7 +352,7 @@ METHOD GetTitle() CLASS TFreeReport
 METHOD SetTitle(cTitle) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetTitle', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cTitle))
-   RETURN
+   RETURN NIL
 
 METHOD GetInitialZoom() CLASS TFreeReport
    LOCAL nZoom := 0
@@ -361,7 +363,7 @@ METHOD GetInitialZoom() CLASS TFreeReport
 METHOD SetInitialZoom(nZoom) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetInitialZoom', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_INT}, ::nObjHandle, nZoom))
-   RETURN
+   RETURN NIL
 
 METHOD GetGrayedButtons() CLASS TFreeReport
    LOCAL lGButt := .F.
@@ -372,7 +374,7 @@ METHOD GetGrayedButtons() CLASS TFreeReport
 METHOD SetGrayedButtons(lGButt) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetGrayedButtons', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, lGButt))
-   RETURN
+   RETURN NIL
 
 METHOD GetModifyPrepared() CLASS TFreeReport
    LOCAL lMPrep := .F.
@@ -383,7 +385,7 @@ METHOD GetModifyPrepared() CLASS TFreeReport
 METHOD SetModifyPrepared(lMPrep) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetModifyPrepared', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, lMPrep))
-   RETURN
+   RETURN NIL
 
 METHOD GetReportType() CLASS TFreeReport
    LOCAL nRepTyp := 0
@@ -394,7 +396,7 @@ METHOD GetReportType() CLASS TFreeReport
 METHOD SetReportType(nRepTyp) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetReportType', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_INT}, ::nObjHandle, nRepTyp))
-   RETURN
+   RETURN NIL
 
 METHOD GetShowProgress() CLASS TFreeReport
    LOCAL lProg := .F.
@@ -405,29 +407,29 @@ METHOD GetShowProgress() CLASS TFreeReport
 METHOD SetShowProgress(lProg) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetShowProgress', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, lProg))
-   RETURN
+   RETURN NIL
 
 METHOD GetDoublePass() CLASS TFreeReport
    LOCAL lVal := .F.
    ::CheckRes(hb_DynCall({'hbfr_GetDoublePass', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, @lVal))
-   RETURN lProg
+   RETURN lVal
 
 METHOD SetDoublePass(lVal) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetDoublePass', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, lVal))
-   RETURN
+   RETURN NIL
 
 METHOD GetModalPreview() CLASS TFreeReport
    LOCAL lVal := .F.
    ::CheckRes(hb_DynCall({'hbfr_GetModalPreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, @lVal))
-   RETURN lProg
+   RETURN lVal
 
 METHOD SetModalPreview(lVal) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetModalPreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, lVal))
-   RETURN
+   RETURN NIL
    
 METHOD GetOnClosePreview() CLASS TFreeReport
    LOCAL cTitle := Space(255)
@@ -438,7 +440,7 @@ METHOD GetOnClosePreview() CLASS TFreeReport
 METHOD SetOnClosePreview(cTitle) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetOnClosePreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cTitle))
-   RETURN
+   RETURN NIL
 
 FUNCTION hbfr_Eval(cExpr, p1, p2, p3, p4, p5)
    RETURN Eval(&(cExpr), p1, p2, p3, p4, p5)
@@ -446,7 +448,7 @@ FUNCTION hbfr_Eval(cExpr, p1, p2, p3, p4, p5)
 FUNCTION hbfr_Exec(cExpr)
    RETURN &cExpr
    
-FUNCTION hbfr_SetErrorBlock()
+PROCEDURE hbfr_SetErrorBlock()
    ErrorBlock({|oE|Break(oE)})
    RETURN
 
