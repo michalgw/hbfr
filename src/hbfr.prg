@@ -45,7 +45,6 @@ CREATE CLASS TFreeReport
 
    EXPORTED:
    METHOD New(lComposite) CONSTRUCTOR
-   METHOD Free()
    METHOD IsComposite()
 
    METHOD AddReport(oReport)
