@@ -83,7 +83,9 @@ exports
   hbfr_GetModalPreview,
   hbfr_SetModalPreview,
   hbfr_SetPrinter,
-  hbfr_GetErrorMsg;
+  hbfr_GetErrorMsg,
+  hbfr_SetOnClosePreview,
+  hbfr_GetOnClosePreview;
 
 begin
 end.
