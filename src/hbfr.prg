@@ -306,9 +306,22 @@ METHOD DesignReport() CLASS TFreeReport
    RETURN NIL
 
 METHOD PrepareReport() CLASS TFreeReport
-   ::CheckRes(hb_DynCall({'hbfr_PrepareReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
-      HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle))
-   RETURN NIL
+   LOCAL nRes, lRes
+   nRes := hb_DynCall({'hbfr_PrepareReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
+      HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle)
+   SWITCH nRes
+   CASE 0
+      lRes := .T.
+      EXIT
+   CASE -3
+      lRes := .F.
+      EXIT
+   OTHERWISE
+      lRes := .F.
+      ::CheckRes(nRes)
+      EXIT
+   ENDSWITCH
+   RETURN lRes
 
 METHOD ShowPreparedReport() CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_ShowPreparedReport', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
