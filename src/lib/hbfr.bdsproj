@@ -123,7 +123,7 @@
 			<Directories Name="UnitOutputDir"></Directories>
 			<Directories Name="PackageDLLOutputDir"></Directories>
 			<Directories Name="PackageDCPOutputDir"></Directories>
-			<Directories Name="SearchPath">$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10;d:\Delphi2006\Components\jcl\lib\d10\debug;d:\Delphi2006\Components\jvcl\lib\D10\debug</Directories>
+			<Directories Name="SearchPath">$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10;d:\Delphi2006\Components\jcl\lib\d10\debug;d:\Delphi2006\Components\jvcl\lib\D10\debug;D:\Delphi2006\Programy\FreeReport\FreeReport\Source</Directories>
 			<Directories Name="Packages"></Directories>
 			<Directories Name="Conditionals"></Directories>
 			<Directories Name="DebugSourceDirs"></Directories>

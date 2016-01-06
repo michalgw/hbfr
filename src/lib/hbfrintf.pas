@@ -210,7 +210,7 @@ end;
 function hbfr_Init(AOemConvert: LongBool; AFunctions: PHbFunctions): Integer; stdcall;
 begin
   try
-    Application.Initialize;
+//    Application.Initialize;
     DoOemConvert := AOemConvert;
     HbFunc := AFunctions^; 
     Result := 0;

@@ -28,14 +28,18 @@
   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 }
 
+// JCL_DEBUG_EXPERT_GENERATEJDBG ON
+// JCL_DEBUG_EXPERT_INSERTJDBG ON
 library hbfr;
 
 uses
   SysUtils,
   Classes,
+  exceptdlg in 'exceptdlg.pas', {ExceptionDialog}
   hbfrintf in 'hbfrintf.pas',
   hbfrclass in 'hbfrclass.pas' {HBFRObj: TDataModule},
-  smpassocar in 'smpassocar.pas';
+  smpassocar in 'smpassocar.pas',
+  Forms;
 
 {$R *.res}
 
@@ -88,4 +92,5 @@ exports
   hbfr_GetOnClosePreview;
 
 begin
+  Application.Initialize;
 end.
