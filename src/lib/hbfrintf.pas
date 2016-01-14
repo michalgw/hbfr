@@ -180,7 +180,8 @@ function HbEval(AExpr: String; AParams: array of const; DoExec: Boolean = False)
 implementation
 
 uses
-  SysUtils, Windows, Forms, FR_View, FR_Class, ExtCtrls, Variants, DateUtils;
+  SysUtils, Windows, Forms, FR_View, FR_Class, ExtCtrls, Variants, DateUtils,
+  FR_Prntr;
 
 var
   ReportList: TList;
@@ -211,6 +212,7 @@ function hbfr_Init(AOemConvert: LongBool; AFunctions: PHbFunctions): Integer; st
 begin
   try
 //    Application.Initialize;
+    InitPrn;
     DoOemConvert := AOemConvert;
     HbFunc := AFunctions^; 
     Result := 0;
