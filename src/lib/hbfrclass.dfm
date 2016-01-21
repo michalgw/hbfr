@@ -52,4 +52,8 @@ object HBFRObj: THBFRObj
     Left = 144
     Top = 128
   end
+  object frTNPDFExport1: TfrTNPDFExport
+    Left = 176
+    Top = 128
+  end
 end

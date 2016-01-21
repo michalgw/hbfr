@@ -35,7 +35,7 @@ interface
 uses
   SysUtils, Classes, FR_Desgn, FR_Class, FR_DSet, smpassocar, FR_E_HTM, FR_E_CSV,
   FR_E_RTF, FR_E_TXT, FR_RRect, FR_Chart, FR_BarC, FR_Shape, FR_ChBox, FR_Rich,
-  FR_OLE;
+  FR_OLE, FR_E_TNPDF;
 
 const
   NAME_SEPARATOR = ':';
@@ -66,6 +66,7 @@ type
     frRTFExport1: TfrRTFExport;
     frCSVExport1: TfrCSVExport;
     frHTMExport1: TfrHTMExport;
+    frTNPDFExport1: TfrTNPDFExport;
     procedure DataModuleCreate(Sender: TObject);
     procedure DataModuleDestroy(Sender: TObject);
   private
