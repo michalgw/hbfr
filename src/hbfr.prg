@@ -34,6 +34,7 @@
 #include "hbgtinfo.ch"
 
 STATIC nHbFrLibHandle := NIL
+STATIC nHbFrLibIdle := NIL
 
 CREATE CLASS TFreeReport
    HIDDEN:
@@ -135,6 +136,17 @@ FUNCTION hbfr_LoadLibrary(cLibName, lOemConvert)
       ENDIF
    ENDIF
    RETURN .F.
+   
+FUNCTION hbfr_FreeLibrary() 
+   IF nHbFrLibIdle != NIL
+      hb_idleDel(nHbFrLibIdle)
+      nHbFrLibIdle := NIL
+   ENDIF
+   IF nHbFrLibHandle != NIL
+      hb_libFree(nHbFrLibHandle)
+      nHbFrLibHandle := NIL
+   ENDIF
+   RETURN NIL
 
 METHOD CheckRes(nRes) CLASS TFreeReport
    LOCAL cErrMsg, oErr
