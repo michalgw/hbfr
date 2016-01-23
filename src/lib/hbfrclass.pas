@@ -123,7 +123,7 @@ implementation
 {$R *.dfm}
 
 uses
-  Printers, hbfrintf, Variants, Forms, Windows;
+  Printers, hbfrintf, Variants, Forms, Windows, FR_View;
 
 { TTHBFRObj }
 
@@ -231,6 +231,7 @@ begin
   Report.OnGetValue := FRGetValue;
   Report.OnUserFunction := FRUserFunction;
   Report.OnClosePreview := OnClosePreview;
+  Report.PreviewButtons := Report.PreviewButtons - [pbHelp];
   OnClosePrev := '';
 end;
 
