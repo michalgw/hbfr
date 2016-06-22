@@ -119,11 +119,11 @@ function hbfr_ProcessMessages: Integer; StdCall;
 function hbfr_New(AComposite: LongBool): LongWord; stdcall;
 function hbfr_Free(AHandle: LongWord): Integer; stdcall;
 
-function hbfr_AddValueC(AHandle: LongWord; AName: PChar; AValue: PChar): Integer; stdcall;
-function hbfr_AddValueNI(AHandle: LongWord; AName: PChar; AValue: Integer): Integer; stdcall;
-function hbfr_AddValueNF(AHandle: LongWord; AName: PChar; AValue: Double): Integer; stdcall;
-function hbfr_AddValueL(AHandle: LongWord; AName: PChar; AValue: LongBool): Integer; stdcall;
-function hbfr_AddValueD(AHandle: LongWord; AName: PChar; AYear, AMonth, ADay: Integer): Integer; stdcall;
+function hbfr_AddValueC(AHandle: LongWord; AVariable: LongBool; AName: PChar; AValue: PChar): Integer; stdcall;
+function hbfr_AddValueNI(AHandle: LongWord; AVariable: LongBool; AName: PChar; AValue: Integer): Integer; stdcall;
+function hbfr_AddValueNF(AHandle: LongWord; AVariable: LongBool; AName: PChar; AValue: Double): Integer; stdcall;
+function hbfr_AddValueL(AHandle: LongWord; AVariable: LongBool; AName: PChar; AValue: LongBool): Integer; stdcall;
+function hbfr_AddValueD(AHandle: LongWord; AVariable: LongBool; AName: PChar; AYear, AMonth, ADay: Integer): Integer; stdcall;
 
 function hbfr_AddDataset(AHandle: LongWord; AName: PChar): Integer; stdcall;
 function hbfr_AddHbDataset(AHandle: LongWord; AName, AExprCheckEof, AExprFirst, AExprNext: PChar): Integer; stdcall;
@@ -261,14 +261,14 @@ begin
   end;
 end;
 
-function hbfr_AddValueC(AHandle: LongWord; AName: PChar; AValue: PChar): Integer; stdcall;
+function hbfr_AddValueC(AHandle: LongWord; AVariable: LongBool; AName: PChar; AValue: PChar): Integer; stdcall;
 begin
   try
     if CheckHandle(AHandle) then
       if DoOemConvert then
-        Result := THBFRObj(AHandle).AddValue(OemToStr(AName), OemToStr(AValue))
+        Result := THBFRObj(AHandle).AddValue(AVariable, OemToStr(AName), OemToStr(AValue))
       else
-        Result := THBFRObj(AHandle).AddValue(String(AName), String(AValue))
+        Result := THBFRObj(AHandle).AddValue(AVariable, String(AName), String(AValue))
     else
       Result := -1;
   except
@@ -280,14 +280,14 @@ begin
   end;
 end;
 
-function hbfr_AddValueNI(AHandle: LongWord; AName: PChar; AValue: Integer): Integer; stdcall;
+function hbfr_AddValueNI(AHandle: LongWord; AVariable: LongBool; AName: PChar; AValue: Integer): Integer; stdcall;
 begin
   try
     if CheckHandle(AHandle) then
       if DoOemConvert then
-        Result := THBFRObj(AHandle).AddValue(OemToStr(AName), AValue)
+        Result := THBFRObj(AHandle).AddValue(AVariable, OemToStr(AName), AValue)
       else
-        Result := THBFRObj(AHandle).AddValue(String(AName), AValue)
+        Result := THBFRObj(AHandle).AddValue(AVariable, String(AName), AValue)
     else
       Result := -1;
   except
@@ -299,14 +299,14 @@ begin
   end;
 end;
 
-function hbfr_AddValueNF(AHandle: LongWord; AName: PChar; AValue: Double): Integer; stdcall;
+function hbfr_AddValueNF(AHandle: LongWord; AVariable: LongBool; AName: PChar; AValue: Double): Integer; stdcall;
 begin
   try
     if CheckHandle(AHandle) then
       if DoOemConvert then
-        Result := THBFRObj(AHandle).AddValue(OemToStr(AName), AValue)
+        Result := THBFRObj(AHandle).AddValue(AVariable, OemToStr(AName), AValue)
       else
-        Result := THBFRObj(AHandle).AddValue(String(AName), AValue)
+        Result := THBFRObj(AHandle).AddValue(AVariable, String(AName), AValue)
     else
       Result := -1;
   except
@@ -318,14 +318,14 @@ begin
   end;
 end;
 
-function hbfr_AddValueL(AHandle: LongWord; AName: PChar; AValue: LongBool): Integer; stdcall;
+function hbfr_AddValueL(AHandle: LongWord; AVariable: LongBool; AName: PChar; AValue: LongBool): Integer; stdcall;
 begin
   try
     if CheckHandle(AHandle) then
       if DoOemConvert then
-        Result := THBFRObj(AHandle).AddValue(OemToStr(AName), AValue)
+        Result := THBFRObj(AHandle).AddValue(AVariable, OemToStr(AName), AValue)
       else
-        Result := THBFRObj(AHandle).AddValue(String(AName), AValue)
+        Result := THBFRObj(AHandle).AddValue(AVariable, String(AName), AValue)
     else
       Result := -1;
   except
@@ -337,7 +337,7 @@ begin
   end;
 end;
 
-function hbfr_AddValueD(AHandle: LongWord; AName: PChar; AYear, AMonth, ADay: Integer): Integer; stdcall;
+function hbfr_AddValueD(AHandle: LongWord; AVariable: LongBool; AName: PChar; AYear, AMonth, ADay: Integer): Integer; stdcall;
 var
   D: TDateTime;
 begin
@@ -345,9 +345,9 @@ begin
     if CheckHandle(AHandle) then
       if TryEncodeDate(AYear, AMonth, ADay, D) then
         if DoOemConvert then
-          Result := THBFRObj(AHandle).AddValue(OemToStr(AName), D)
+          Result := THBFRObj(AHandle).AddValue(AVariable, OemToStr(AName), D)
         else
-          Result := THBFRObj(AHandle).AddValue(String(AName), D)
+          Result := THBFRObj(AHandle).AddValue(AVariable, String(AName), D)
       else
       begin
         THBFRObj(AHandle).LastErrorMsg := 'Invalid date';

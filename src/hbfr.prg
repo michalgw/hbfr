@@ -57,7 +57,7 @@ CREATE CLASS TFreeReport
    METHOD SavePreparedReport(cFileName)
    METHOD LoadFromMemory(cData)
 
-   METHOD AddValue(cValueName, xValue)
+   METHOD AddValue(cValueName, xValue, lIsVariable)
    METHOD AddRow(cTableName, aValues, aNames)
    METHOD AddDataset(cDatasetName)
    METHOD AddHbDataset(cDatasetName, cExprCheckEOF, cExprFirst, cExprNext)
@@ -238,28 +238,29 @@ METHOD LoadFromMemory(cData) CLASS TFreeReport
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR + HB_DYN_ENC_RAW, HB_DYN_CTYPE_INT}, ::nObjHandle, cData, Len(cData)))
    RETURN NIL
 
-METHOD AddValue(cValueName, xValue) CLASS TFreeReport
+METHOD AddValue(cValueName, xValue, lIsVariable) CLASS TFreeReport
    LOCAL cParamType, nRet
+   hb_default(@lIsVariable, .F.)
    cParamType := ValType(xValue)
    DO CASE
       CASE cParamType == 'C' .OR. cParamType == 'M'
          nRet := hb_DynCall({'hbfr_AddValueC', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
-            HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cValueName, xValue)
+            HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, lIsVariable, cValueName, xValue)
       CASE cParamType == 'N'
          IF hbfr_IsInt(xValue)
             nRet := hb_DynCall({'hbfr_AddValueNI', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
-               HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_INT}, ::nObjHandle, cValueName, xValue)
+               HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_INT}, ::nObjHandle, lIsVariable, cValueName, xValue)
          ELSE
             nRet := hb_DynCall({'hbfr_AddValueNF', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
-               HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_DOUBLE}, ::nObjHandle, cValueName, xValue)
+               HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_DOUBLE}, ::nObjHandle, lIsVariable, cValueName, xValue)
          ENDIF
       CASE cParamType == 'D'
          nRet := hb_DynCall({'hbfr_AddValueD', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
-            HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_INT, HB_DYN_CTYPE_INT, HB_DYN_CTYPE_INT}, ::nObjHandle,;
+            HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_INT, HB_DYN_CTYPE_INT, HB_DYN_CTYPE_INT}, ::nObjHandle, lIsVariable,;
             cValueName, Year(xValue), Month(xValue), Day(xValue))
       CASE cParamType == 'L'
          nRet := hb_DynCall({'hbfr_AddValueL', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
-            HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_BOOL}, ::nObjHandle, cValueName, xValue)
+            HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL, HB_DYN_CTYPE_CHAR_PTR, HB_DYN_CTYPE_BOOL}, ::nObjHandle, lIsVariable, cValueName, xValue)
       OTHERWISE
          nRet := -4
    ENDCASE

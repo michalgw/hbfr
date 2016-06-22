@@ -88,7 +88,7 @@ type
     LastErrorMsg: String;
     OnClosePrev: String;
     constructor CreateC(AOwner: TComponent; AComposite: Boolean = False);
-    function AddValue(AValueName: String; AValue: Variant): Integer;
+    function AddValue(AVariable: Boolean; AValueName: String; AValue: Variant): Integer;
     function AddDataset(ADatasetName: String): Integer;
     function AddHbDataset(ADatasetName: String; AExprCheckEof, AExprFirst, AExprNext: String): Integer;
     function GetRowCount(ATable: String): Integer;
@@ -173,24 +173,32 @@ begin
     Result := -3;
 end;
 
-function THBFRObj.AddValue(AValueName: String; AValue: Variant): Integer;
+function THBFRObj.AddValue(AVariable: Boolean; AValueName: String; AValue: Variant): Integer;
 var
   A: TSmpAssocArray;
   I: Integer;
   FNames: TStringList;
 begin
-  Result := -3;
-  AValueName := UpperCase(AValueName);
-  if DecodeName(AValueName, FNames) then
+  if AVariable then
   begin
-    A := FData[FNames[0]];
-    if FNames.Count  > 1 then
-      for I := 1 to FNames.Count - 1 do
-        A := A[FNames[I]];
-    A.Value := AValue;
+    frVariables[AValueName] := AValue;
     Result := 0;
+  end
+  else
+  begin
+    Result := -3;
+    AValueName := UpperCase(AValueName);
+    if DecodeName(AValueName, FNames) then
+    begin
+      A := FData[FNames[0]];
+      if FNames.Count  > 1 then
+        for I := 1 to FNames.Count - 1 do
+          A := A[FNames[I]];
+      A.Value := AValue;
+      Result := 0;
+    end;
+    FNames.Free;
   end;
-  FNames.Free;
 end;
 
 function THBFRObj.ClearData: Integer;
