@@ -89,7 +89,9 @@ exports
   hbfr_SetPrinter,
   hbfr_GetErrorMsg,
   hbfr_SetOnClosePreview,
-  hbfr_GetOnClosePreview;
+  hbfr_GetOnClosePreview,
+  hbfr_GetPageCount,
+  hbfr_SetMargins;
 
 begin
   Application.Initialize;

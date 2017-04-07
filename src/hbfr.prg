@@ -76,6 +76,9 @@ CREATE CLASS TFreeReport
 
    METHOD SetPrinter(cPrinterName)
 
+   METHOD GetPageCount()
+   METHOD SetMargins( nPage, nLeft, nRight, nTop, nBottom )
+
    DESTRUCTOR FreeFR()
 
    ACCESS Title METHOD GetTitle
@@ -366,6 +369,18 @@ METHOD IsPreviewVisible() CLASS TFreeReport
 METHOD SetPrinter(cPrinterName) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetPrinter', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_CHAR_PTR}, ::nObjHandle, cPrinterName))
+   RETURN NIL
+
+METHOD GetPageCount() CLASS TFreeReport
+   LOCAL nPages := 0
+   ::CheckRes(hb_DynCall({'hbfr_GetPageCount', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
+      HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_INT}, ::nObjHandle, @nPages))
+   RETURN nPages
+
+METHOD SetMargins( nPage, nLeft, nRight, nTop, nBottom ) CLASS TFreeReport
+   ::CheckRes(hb_DynCall({'hbfr_SetMargins', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
+      HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_INT, HB_DYN_CTYPE_INT, HB_DYN_CTYPE_INT, HB_DYN_CTYPE_INT, HB_DYN_CTYPE_INT},;
+      ::nObjHandle, nPage, nLeft, nRight, nTop, nBottom))
    RETURN NIL
 
 METHOD GetTitle() CLASS TFreeReport

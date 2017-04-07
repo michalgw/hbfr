@@ -148,6 +148,9 @@ function hbfr_PrintPreparedReport(AHandle: LongWord; APages: PChar; ACopies: Int
 function hbfr_DesignReport(AHandle: LongWord): Integer; stdcall;
 function hbfr_EditPreparedReport(AHandle: LongWord; APageIndex: Integer): Integer; stdcall;
 
+function hbfr_GetPageCount(AHandle: LongWord; var AValue: Integer): Integer; stdcall;
+function hbfr_SetMargins(AHandle: LongWord; APage: Integer; ALeft, ARight, ATop, ABottom: Integer): Integer; stdcall;
+
 function hbfr_ClosePreview(AHandle: LongWord): Integer; stdcall;
 function hbfr_IsPreviewVisible(AHandle: LongWord; var AValue: LongBool): Integer; stdcall;
 
@@ -662,6 +665,44 @@ begin
   end;
 end;
 
+function hbfr_GetPageCount(AHandle: LongWord; var AValue: Integer): Integer;
+begin
+  try
+    if CheckHandle(AHandle) then
+      AValue := THBFRObj(AHandle).Report.Pages.Count
+    else
+      Result := -1;
+  except
+    on E: Exception do
+    begin
+      THBFRObj(AHandle).LastErrorMsg := E.Message;
+      Result := -2;
+    end;
+  end;
+end;
+
+function hbfr_SetMargins(AHandle: LongWord; APage: Integer; ALeft, ARight, ATop, ABottom: Integer): Integer;
+begin
+  try
+    if CheckHandle(AHandle)
+      and (THBFRObj(AHandle).Report.Pages.Count > 0)
+      and (APage >= 0) and (APage < THBFRObj(AHandle).Report.Pages.Count) then
+    begin
+      THBFRObj(AHandle).Report.Pages[APage].pgMargins :=
+        Rect(ALeft * 18 div 5, ATop * 18 div 5, ARight * 18 div 5, ABottom * 18 div 5);
+      Result := 0;
+    end
+    else
+      Result := -1;
+  except
+    on E: Exception do
+    begin
+      THBFRObj(AHandle).LastErrorMsg := E.Message;
+      Result := -2;
+    end;
+  end;
+end;
+
 function hbfr_ClosePreview(AHandle: LongWord): Integer; stdcall;
 begin
   try
@@ -1066,10 +1107,9 @@ begin
     if CheckHandle(AHandle) then
     begin
       if DoOemConvert then
-        THBFRObj(AHandle).SetPrinter(OemToStr(APrinterName))
+        Result := THBFRObj(AHandle).SetPrinter(OemToStr(APrinterName))
       else
-        THBFRObj(AHandle).SetPrinter(String(APrinterName));
-      Result := 0;
+        Result := THBFRObj(AHandle).SetPrinter(String(APrinterName));
     end
     else
       Result := -1;
