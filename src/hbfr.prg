@@ -45,58 +45,158 @@ CREATE CLASS TFreeReport
    METHOD GetLastError()
 
    EXPORTED:
-   METHOD New(lComposite) CONSTRUCTOR
+
+   // Create new report object
+   // lComposite - if True, a composite report will be created
+   METHOD New( lComposite ) CONSTRUCTOR
+
+   // Returns .T. if current report object is composite report
    METHOD IsComposite()
 
-   METHOD AddReport(oReport)
+
+   // Add report object to composite report
+   METHOD AddReport( oReport )
+
+   // Remove all reports objects from composite report
    METHOD ClearReports()
 
-   METHOD LoadFromFile(cFileName)
-   METHOD SaveToFile(cFileName)
-   METHOD LoadPreparedReport(cFileName)
-   METHOD SavePreparedReport(cFileName)
-   METHOD LoadFromMemory(cData)
 
-   METHOD AddValue(cValueName, xValue, lIsVariable)
-   METHOD AddRow(cTableName, aValues, aNames)
-   METHOD AddDataset(cDatasetName)
-   METHOD AddHbDataset(cDatasetName, cExprCheckEOF, cExprFirst, cExprNext)
-   METHOD RowCount(cTableName)
+   // Loads report from file with cFileName name. File must have .frf extention (FastReport Form).
+   METHOD LoadFromFile( cFileName )
+
+   // Saves report to file with cFileName name. File must have .frf extention (FastReport Form).
+   METHOD SaveToFile( cFileName )
+
+   // Loads prepared report from file with cFileName name. File must have .frp extention (FastReport Prepared report).
+   METHOD LoadPreparedReport( cFileName )
+
+   // Saves prepared report to file with cFileName name. File must have .frp extetion (FastReport Prepared report).
+   METHOD SavePreparedReport( cFileName )
+
+   // Load report from string. Helpful when loading a report from database
+   METHOD LoadFromMemory( cData )
+
+
+   // Add value to report
+   // cValueName - name of value
+   // xValue - value (can be numeric, string, memo, date, timestamp, boolean)
+   // lIsVariable - if true value will be assigned to FreeReport variable
+   METHOD AddValue( cValueName, xValue, lIsVariable )
+
+   // Add row to dataset
+   // cTableName - dataset name - string
+   // aValues - array with values or hash table
+   // aNames - if aValues is simple array then aNames is string array containing column names
+   METHOD AddRow( cTableName, aValues, aNames )
+
+   // Register simple dataset
+   METHOD AddDataset( cDatasetName )
+
+   // Register harbour dataset - dataset controled by harbour side expressions or functions
+   // cDatasetName - name of dataset
+   // cExprCheckEOF - expression that checks end of data, should return true or false
+   // cExprFirst - expression, go to first record
+   // cExprNext - expression, skip to next record
+   METHOD AddHbDataset( cDatasetName, cExprCheckEOF, cExprFirst, cExprNext )
+
+   // Return row count of dataset - only for simple datasets, where data is added by AddRow
+   METHOD RowCount( cTableName )
+
+   // Remove all datasets and clear data
    METHOD ClearData()
 
+
+   // Builds and shows report in preview window.
+   // Assumed that report was builded with PrepareReport method or loaded from file by LoadPreparedReport method.
+   // Prepared report clears after closing preview window.
    METHOD ShowReport()
+
+   // Runs report designer.
    METHOD DesignReport()
+
+   // Starts report building process. If user interrupts it, returns False.
    METHOD PrepareReport()
+
+   // Shows prepared report in preview window.
+   // Assumed that report was builded with PrepareReport method or loaded from file by LoadPreparedReport method.
+   // Prepared report clears after closing preview window.
    METHOD ShowPreparedReport()
-   METHOD EditPreparedReport(nPageIndex)
-   METHOD PrintPreparedReport(cPages, nCopies)
-   
+
+   // Edits page of prepared report. If no designer in compliled project, does nothing.
+   // Assumed that report was builded with PrepareReport method or loaded from file by LoadPreparedReport method.
+   METHOD EditPreparedReport( nPageIndex )
+
+   // Prints prepared report. Printed pages taken from cPages string,
+   // which can contains page numbers separated by comma, or page ranges (for example, "1,3,5-12").
+   // If this string is empty, prints all pages.
+   // nCopies parameter sets number of copies to print.
+   // Assumed that report was builded with PrepareReport method or loaded from file by LoadPreparedReport method.
+   METHOD PrintPreparedReport( cPages, nCopies )
+
+
+   // Close preview window
    METHOD ClosePreview()
+
+   // Returns true if preview window is visible
    METHOD IsPreviewVisible()
 
-   METHOD SetPrinter(cPrinterName)
 
+   // Set printer name
+   METHOD SetPrinter( cPrinterName )
+
+
+   // Get number of pages
    METHOD GetPageCount()
+
+   // Set page margins
    METHOD SetMargins( nPage, nLeft, nRight, nTop, nBottom )
 
    DESTRUCTOR FreeFR()
 
+   // Report title - shows in preview and progress windows and assigns to the printed job.
+   // string
    ACCESS Title METHOD GetTitle
    ASSIGN Title METHOD SetTitle
+
+   // Initial zoom for preview
+   // numeric
    ACCESS InitialZoom METHOD GetInitialZoom
    ASSIGN InitialZoom METHOD SetInitialZoom
+
+   // If this property is True, Preview window will has grayed buttons.
+   // If your project contains report designer, you can set this option in "Designer options" dialog.
+   // boolean
    ACCESS GrayedButtons METHOD GetGrayedButtons
    ASSIGN GrayedButtons METHOD SetGrayedButtons
+
+   // Allows to modify prepared report
+   // boolean
    ACCESS ModifyPrepared METHOD GetModifyPrepared
    ASSIGN ModifyPrepared METHOD SetModifyPrepared
+
+   // Report type. Can be set to HBFR_RT_MULTIPLE or HBFR_RT_SIMPLE (default).
+   // Multiple report uses Dataset property to build report for each record in this dataset.
+   // numeric
    ACCESS ReportType METHOD GetReportType
    ASSIGN ReportType METHOD SetReportType
+
+   // If True, shows progress window when building, printing or exporting report.
+   // boolean
    ACCESS ShowProgress METHOD GetShowProgress
    ASSIGN ShowProgress METHOD SetShowProgress
+
+   // If True, build the report twice, inserting total number of pages on the second run
+   // boolean
    ACCESS DoublePass METHOD GetDoublePass
    ASSIGN DoublePass METHOD SetDoublePass
+
+   // If this property is True, Preview window will be modal. Non-modal preview allows you to open several previews.
+   // boolean
    ACCESS ModalPreview METHOD GetModalPreview
    ASSIGN ModalPreview METHOD SetModalPreview
+
+   // expression that will be executed after closing preview window
+   // string
    ACCESS OnClosePreview METHOD GetOnClosePreview
    ASSIGN OnClosePreview METHOD SetOnClosePreview
 
@@ -139,8 +239,8 @@ FUNCTION hbfr_LoadLibrary(cLibName, lOemConvert)
       ENDIF
    ENDIF
    RETURN .F.
-   
-FUNCTION hbfr_FreeLibrary() 
+
+FUNCTION hbfr_FreeLibrary()
    IF nHbFrLibIdle != NIL
       hb_idleDel(nHbFrLibIdle)
       nHbFrLibIdle := NIL
@@ -358,7 +458,7 @@ METHOD ClosePreview() CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_ClosePreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL), ;
       HB_DYN_CTYPE_INT_UNSIGNED}, ::nObjHandle))
    RETURN NIL
-   
+
 METHOD IsPreviewVisible() CLASS TFreeReport
    LOCAL lGButt := .F.
    ::CheckRes(hb_DynCall({'hbfr_IsPreviewVisible', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
@@ -470,7 +570,7 @@ METHOD SetModalPreview(lVal) CLASS TFreeReport
    ::CheckRes(hb_DynCall({'hbfr_SetModalPreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
       HB_DYN_CTYPE_INT_UNSIGNED, HB_DYN_CTYPE_BOOL}, ::nObjHandle, lVal))
    RETURN NIL
-   
+
 METHOD GetOnClosePreview() CLASS TFreeReport
    LOCAL cTitle := Space(255)
    ::CheckRes(hb_DynCall({'hbfr_GetOnClosePreview', nHbFrLibHandle, hb_bitOr(HB_DYN_CTYPE_INT, HB_DYN_CALLCONV_STDCALL),;
@@ -487,7 +587,7 @@ FUNCTION hbfr_Eval(cExpr, p1, p2, p3, p4, p5)
 
 FUNCTION hbfr_Exec(cExpr)
    RETURN &cExpr
-   
+
 PROCEDURE hbfr_SetErrorBlock()
    ErrorBlock({|oE|Break(oE)})
    RETURN
