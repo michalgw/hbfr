@@ -1,6 +1,7 @@
 description=FreeReport for Harbour
 
 incpaths=.
+libpaths=.
 
 headers=hbfr.ch
 
